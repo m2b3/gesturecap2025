@@ -38,6 +38,8 @@ def main_loop():
     print("Starting hand-tap detection. Press 'q' to exit.")
 
     while True:
+
+        time_start = time.time()
         frame, ts = cam.read_frame()
         if not frame.any(): break
         hands = detector.detect_hand_pose(frame)
@@ -56,11 +58,16 @@ def main_loop():
                     state = 1; tapped = True; counter += 1
                     print(f"Tap #{counter}")
                     client.send_message('/trigger', 1)
+                    # time_end = time.time()
+                    # print(time_end-time_start)
+        
+        time_mid = time.time()
         # draw line
         cv2.line(frame, (0,y_line), (frame.shape[1],y_line), (255,0,0), 2)
         cv2.imshow('Hand Tap', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'): break
-
+        time_end = time.time()
+        # print(time_end-time_start)
     cam.cleanup(); cv2.destroyAllWindows()
 
 if __name__ == '__main__':
