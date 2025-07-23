@@ -1,39 +1,92 @@
 import serial
 from datetime import datetime
+import time
 import os
+import json
 
-port = "/dev/ttyACM0"
+# Paths
+default_config_path = 'config.json'
+output_dir = 'latency_logs'
 
-# Prompt user for configuration
-device = input("Enter the device on which the experiment is conducted on: ")
-baud_rate = int(input("Enter baud rate (e.g. 9600 or 115200): "))
-method = input("Enter method description: ")
-frequency = input("Enter frequency (Hz): ")
-threshold = input("Enter threshold value: ")
-pd_delay = input("Enter pd_delay (ms): ")
-output_method = input("Enter output method ('aux', 'behringer', or 'focusrite'): ")
+# Default configuration keys
+default_keys = [
+    ('device', 'Enter the device on which the experiment is conducted on'),
+    ('baud_rate', 'Enter baud rate (e.g. 9600 or 115200)'),
+    ('method', 'Enter method description'),
+    ('frequency', 'Enter frequency (Hz)'),
+    ('threshold', 'Enter threshold value'),
+    ('pd_delay', 'Enter pd_delay (ms)'),
+    ('output_method', "Enter output method ('aux_speaker', 'aux_direct', or 'focusrite')")
+]
 
-# Construct dynamic filename based on metadata
-# timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+# Load existing config or create new one
+config = {}
+if os.path.exists(default_config_path):
+    with open(default_config_path, 'r') as cfg_file:
+        config = json.load(cfg_file)
+    use_cfg = input(f"Load existing config from {default_config_path}? [Y/n]: ").strip().lower() or 'y'
+    if use_cfg == 'y':
+        modify = input("Modify this config? [y/N]: ").strip().lower() or 'n'
+        if modify == 'y':
+            # Prompt for each key, showing the current value
+            for key, prompt in default_keys:
+                current = config.get(key, '')
+                new_val = input(f"{prompt} [{current}]: ").strip()
+                if new_val:
+                    # Cast to int if original was numeric
+                    if isinstance(current, int):
+                        new_val = int(new_val)
+                    config[key] = new_val
+            # Save back
+            with open(default_config_path, 'w') as cfg_file:
+                json.dump(config, cfg_file, indent=4)
+        # else: keep loaded config
+    else:
+        # Ignore existing config: prompt fresh and overwrite
+        for key, prompt in default_keys:
+            val = input(f"{prompt}: ").strip()
+            # Cast numbers
+            if key in ('baud_rate',):
+                val = int(val)
+            config[key] = val
+        with open(default_config_path, 'w') as cfg_file:
+            json.dump(config, cfg_file, indent=4)
+else:
+    # No config exists: prompt user and save
+    print(f"No config file found. Creating new one at {default_config_path}.")
+    for key, prompt in default_keys:
+        val = input(f"{prompt}: ").strip()
+        if key == 'baud_rate':
+            val = int(val)
+        config[key] = val
+    with open(default_config_path, 'w') as cfg_file:
+        json.dump(config, cfg_file, indent=4)
+
+# Unpack config values
+device = config['device']
+baud_rate = int(config['baud_rate'])
+method = config['method']
+frequency = config['frequency']
+threshold = config['threshold']
+pd_delay = config['pd_delay']
+output_method = config['output_method']
+
+# Setup output file
 basename = f"delay_{method.replace(' ', '_')}_freq{frequency}_th{threshold}_{output_method}.txt"
-output_dir = "latency_logs"
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 output_file = os.path.join(output_dir, basename)
 
 # Initialize serial connection
+port = "/dev/ttyACM0"
 ser = serial.Serial(port, baud_rate)
 
 with open(output_file, "w+") as f:
     # Write header metadata
     f.write(f"# Logging started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-    f.write(f"# Device: {device}\n")
-    f.write(f"# Baud Rate: {baud_rate}\n")
-    f.write(f"# Method: {method}\n")
-    f.write(f"# Frequency: {frequency}\n")
-    f.write(f"# Threshold: {threshold}\n")
-    f.write(f"# PD Delay: {pd_delay}\n")
-    f.write(f"# Output Method: {output_method}\n\n")
+    for key in config:
+        f.write(f"# {key.replace('_', ' ').title()}: {config[key]}\n")
+    f.write("\n")
     f.flush()
 
     print(f"Logging started with device={device}, method={method}, frequency={frequency}, threshold={threshold}, pd_delay={pd_delay}, output_method={output_method}.")
@@ -45,9 +98,8 @@ with open(output_file, "w+") as f:
             if not line:
                 continue
 
-            # Only process numeric readings
             if line.isdigit():
-                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                timestamp = time.time()
                 entry = f"{timestamp}, {line} ms"
                 print(entry)
                 f.write(entry + "\n")
