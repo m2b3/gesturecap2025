@@ -51,22 +51,23 @@ print(f"Median latency (filtered): {median_val} ms")
 print(f"Mean latency (filtered): {mean_filtered:.2f} ms")
 print(f"Standard deviation (filtered): {std_filtered:.2f} ms")
 
-# Plot
-plt.figure(figsize=(10, 5))
-plt.plot(filtered_latencies, marker='o', linestyle='-', color='blue')
-plt.title("Button to Audio Latency (Outliers Removed)")
-plt.xlabel("Sample Index")
-plt.ylabel("Latency (ms)")
-plt.grid(True)
+# Plot histogram
+plt.figure(figsize=(10, 6))
+plt.hist(filtered_latencies, bins=30, color='skyblue', edgecolor='black', alpha=0.7)
 
-# Stats lines
-plt.axhline(mean_filtered, color='green', linestyle='--', label=f'Mean = {mean_filtered:.2f} ms')
-plt.axhline(mean_filtered + std_filtered, color='orange', linestyle='--', label=f'+1σ = {mean_filtered + std_filtered:.2f} ms')
-plt.axhline(mean_filtered - std_filtered, color='orange', linestyle='--', label=f'-1σ = {mean_filtered - std_filtered:.2f} ms')
-plt.axhline(median_val, color='purple', linestyle=':', label=f'Median = {median_val:.2f} ms')
-plt.axhline(min_val, color='gray', linestyle='--', label=f'Min = {min_val} ms')
-plt.axhline(max_val, color='gray', linestyle='--', label=f'Max = {max_val} ms')
+# Add vertical lines for stats
+plt.axvline(mean_filtered, color='green', linestyle='--', label=f'Mean = {mean_filtered:.2f} ms')
+plt.axvline(mean_filtered + std_filtered, color='orange', linestyle='--', label=f'+1σ = {mean_filtered + std_filtered:.2f} ms')
+plt.axvline(mean_filtered - std_filtered, color='orange', linestyle='--', label=f'-1σ = {mean_filtered - std_filtered:.2f} ms')
+plt.axvline(median_val, color='purple', linestyle=':', label=f'Median = {median_val:.2f} ms')
+plt.axvline(min_val, color='gray', linestyle='--', label=f'Min = {min_val} ms')
+plt.axvline(max_val, color='gray', linestyle='--', label=f'Max = {max_val} ms')
 
+# Formatting
+plt.title("Histogram of Button to Audio Latency (Outliers Removed)")
+plt.xlabel("Latency (ms)")
+plt.ylabel("Frequency")
 plt.legend()
+plt.grid(True)
 plt.tight_layout()
 plt.show()
