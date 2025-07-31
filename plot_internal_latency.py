@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load CSV
-df = pd.read_csv("freezed_log/tableB.csv")
+df = pd.read_csv("tableB.csv")
 
 # Convert latency columns to milliseconds
 df['internal_latency_ms'] = df['internal_latency_total'] * 1000

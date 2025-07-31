@@ -2,6 +2,7 @@ import numpy as np
 import logging
 import PySpin
 from video_input import VideoInput
+import time
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -117,7 +118,7 @@ class Flircam(VideoInput):
 
         # Set exposure time and limits
         # self.cam.ExposureTime.SetValue(self.config.video.exposure_time)  # in microseconds
-        self.cam.ExposureTime.SetValue(1000)  # in microseconds
+        self.cam.ExposureTime.SetValue(1200)  # in microseconds
 
         # Enable chunk data mode
         self.cam.ChunkModeActive.SetValue(True)
