@@ -124,6 +124,9 @@ def main_loop():
             hands = detector.detect_hand_pose(frame)
             t_proc_end = time.time()
             
+            """~~~~~ tap detection and OSC logic, removed in (_verification.py) ~~~~~~"""
+            # Tap detection and OSC logic
+
             tapped = False
             if hands:
                 for hand in hands:
@@ -146,6 +149,8 @@ def main_loop():
                         print(f"Tap #{counter}")
                         client.send_message('/trigger', 1)
             
+            """~~~~~~tap detection and OSC logic ends here~~~~~~~~"""
+
             # Timestamp at end
             t_end = time.time()
             
@@ -153,9 +158,9 @@ def main_loop():
             latency_total = t_end - t_start
             latency_processing = t_proc_end - t_proc_start
             
-            # # Log to CSV (including frame age for analysis)
-            # csv_writer.writerow([t_start, latency_total, latency_processing, frame_age])
-            # csv_file.flush()
+            # Log to CSV (including frame age for analysis)
+            csv_writer.writerow([t_start, latency_total, latency_processing, frame_age])
+            csv_file.flush()
             
             # Optional: Print performance metrics
             # buffer_size = frame_capture.get_buffer_size()

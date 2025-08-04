@@ -1,7 +1,11 @@
 import cv2
 import time
+import json
+import csv
+import numpy as np
 import threading
 from collections import deque
+from pythonosc import udp_client
 from flircam import Flircam
 from hand_pose_detector import HandPoseDetector
 
@@ -45,11 +49,10 @@ class ThreadedFrameCapture:
                         self.buffer.append((frame, ts, time.time()))
                 else:
                     # Small delay if no frame available
-                    # time.sleep(0.001)
-                    continue
+                    time.sleep(0.001)
             except Exception as e:
                 print(f"Frame capture error: {e}")
-                # time.sleep(0.001)
+                time.sleep(0.001)
                 
     def get_latest_frame(self):
         """Get the most recent frame from buffer"""
@@ -77,7 +80,12 @@ def main_loop():
     time.sleep(0.1)
     
     detector = HandPoseDetector()
-
+    
+    csv_filename = 'tableB.csv'
+    csv_file = open(csv_filename, 'w', newline='')
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(['timestamp', 'internal_latency_total', 'latency_processing', 'frame_age'])
+    
     print("Starting hand-tap detection. Press 'q' to exit.")
     
     try:
@@ -86,11 +94,11 @@ def main_loop():
             t_start = time.time()
             
             # Get latest frame from buffer (non-blocking)
-            frame, original_ts, capture_time = frame_capture.get_latest_frame()
+            frame, _, capture_time = frame_capture.get_latest_frame()
             
             if frame is None:
                 # No frame available, continue
-                # time.sleep(0.001)
+                time.sleep(0.001)
                 continue
                 
             # Calculate frame age (how old the frame is)
@@ -101,11 +109,18 @@ def main_loop():
             hands = detector.detect_hand_pose(frame)
             t_proc_end = time.time()
             
+            # This part is supposed to contain the tap detection and OSC signal logic, removed in this script.
+
+            # Timestamp at end
             t_end = time.time()
             
             # Compute latencies
             latency_total = t_end - t_start
             latency_processing = t_proc_end - t_proc_start
+            
+            # Log to CSV (including frame age for analysis)
+            csv_writer.writerow([t_start, latency_total, latency_processing, frame_age])
+            csv_file.flush()
             
             # Optional: Print performance metrics
             buffer_size = frame_capture.get_buffer_size()
@@ -117,8 +132,10 @@ def main_loop():
     finally:
         # Clean up
         frame_capture.stop()
+        csv_file.close()
         cam.cleanup()
         cv2.destroyAllWindows()
+        print(f"Logged data to {csv_filename}")
 
 if __name__ == '__main__':
     main_loop()
