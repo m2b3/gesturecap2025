@@ -20,7 +20,7 @@ def producer(shm_name, lock, stop_event, ts):
     shm.close()
 
 def consumer(shm_name, lock, stop_event, ts, frame_ages):
-    time.sleep(1)  # let producer start first
+    time.sleep(0.5)  # let producer start first
     shm = shared_memory.SharedMemory(name=shm_name)
     frame_buffer = np.ndarray(FRAME_SHAPE, dtype=FRAME_DTYPE, buffer=shm.buf)
 
