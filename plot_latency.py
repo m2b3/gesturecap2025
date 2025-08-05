@@ -5,7 +5,7 @@ import numpy as np
 # log_file = "latency_logs/delay_delta5_freq200_th60_aux.txt"
 # log_file = "latency_logs/delay_raw_freq200_th200_aux.txt"
 # log_file = "freezed_log_A15/delay_raw_freq200_th80_aux.txt"
-log_file = "latency_logs/delay_raw_freq200_th80_focusrite.txt"
+log_file = "freezed_logs/delay_raw_freq200_th80_aux_speaker.txt"
 
 # Read and extract latency values
 latencies = []
@@ -70,3 +70,16 @@ plt.axhline(max_val, color='gray', linestyle='--', label=f'Max = {max_val} ms')
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+# Save the plot with the same name as the log file with a suffix
+# save it in a directory called figures
+import os
+
+# Ensure the 'figures' directory exists
+os.makedirs("figures", exist_ok=True)
+
+log_filename = os.path.basename(log_file)
+plot_filename = f"figures/{os.path.splitext(log_filename)[0]}_latency_plot.svg"
+plt.savefig(plot_filename)
+print(f"Plot saved to {plot_filename}")
+plt.close()

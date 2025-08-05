@@ -4,7 +4,7 @@ import numpy as np
 # log_file = "latency_logs/delay_delta5_freq200_th11_aux.txt"
 # log_file = "latency_logs/delay_delta5_freq200_th60_aux.txt"
 # log_file = "latency_logs/delay_raw_freq200_th200_aux.txt"
-log_file = "/home/buxin/program/gesturecap2025/latency_logs/delay_test_freqtest_thtest_test.txt"
+log_file = "freezed_logs/delay_raw_freq200_th80_aux_speaker.txt"
 # log_file = "latency_logs/delay_raw_freq200_th80_aux.txt"
 
 # Read and extract latency values
@@ -71,3 +71,22 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+# Save the plot with the same name as the log file with a suffix
+# save it in a directory called figures
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+
+# Ensure the 'figures' directory exists
+os.makedirs("figures", exist_ok=True)
+
+
+base_name = os.path.basename(log_file)
+name, ext = os.path.splitext(base_name)
+output_file = f"figures/{name}_histogram.svg"
+
+plt.savefig(output_file)
+print(f"Histogram saved as {output_file}")
+plt.close()
