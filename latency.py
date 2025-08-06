@@ -53,7 +53,9 @@ def main_loop():
             # Capture frame
             frame, ts = cam.read_frame()
             if not frame.any():
-                break   
+                break
+
+            # print(frame.dtype)
 
             # Measure processing latency (hand detection)
             t_proc_start = time.time()
