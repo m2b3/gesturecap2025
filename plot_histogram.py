@@ -4,8 +4,8 @@ import numpy as np
 # log_file = "latency_logs/delay_delta5_freq200_th11_aux.txt"
 # log_file = "latency_logs/delay_delta5_freq200_th60_aux.txt"
 # log_file = "latency_logs/delay_raw_freq200_th200_aux.txt"
-# log_file = "freezed_log_A15/delay_raw_freq200_th80_aux.txt"
 log_file = "freezed_logs/delay_raw_freq200_th80_aux_speaker.txt"
+# log_file = "latency_logs/delay_raw_freq200_th80_aux.txt"
 
 # Read and extract latency values
 latencies = []
@@ -51,35 +51,42 @@ print(f"Median latency (filtered): {median_val} ms")
 print(f"Mean latency (filtered): {mean_filtered:.2f} ms")
 print(f"Standard deviation (filtered): {std_filtered:.2f} ms")
 
-# Plot
-plt.figure(figsize=(10, 5))
-plt.plot(filtered_latencies, marker='o', linestyle='-', color='blue')
-plt.title("Button to Audio Latency (Outliers Removed)")
-plt.xlabel("Sample Index")
-plt.ylabel("Latency (ms)")
-plt.grid(True)
+# Plot histogram
+plt.figure(figsize=(10, 6))
+plt.hist(filtered_latencies, bins=30, color='skyblue', edgecolor='black', alpha=0.7)
 
-# Stats lines
-plt.axhline(mean_filtered, color='green', linestyle='--', label=f'Mean = {mean_filtered:.2f} ms')
-plt.axhline(mean_filtered + std_filtered, color='orange', linestyle='--', label=f'+1σ = {mean_filtered + std_filtered:.2f} ms')
-plt.axhline(mean_filtered - std_filtered, color='orange', linestyle='--', label=f'-1σ = {mean_filtered - std_filtered:.2f} ms')
-plt.axhline(median_val, color='purple', linestyle=':', label=f'Median = {median_val:.2f} ms')
-plt.axhline(min_val, color='gray', linestyle='--', label=f'Min = {min_val} ms')
-plt.axhline(max_val, color='gray', linestyle='--', label=f'Max = {max_val} ms')
+# Add vertical lines for stats
+plt.axvline(mean_filtered, color='green', linestyle='--', label=f'Mean = {mean_filtered:.2f} ms')
+plt.axvline(mean_filtered + std_filtered, color='orange', linestyle='--', label=f'+1σ = {mean_filtered + std_filtered:.2f} ms')
+plt.axvline(mean_filtered - std_filtered, color='orange', linestyle='--', label=f'-1σ = {mean_filtered - std_filtered:.2f} ms')
+plt.axvline(median_val, color='purple', linestyle=':', label=f'Median = {median_val:.2f} ms')
+plt.axvline(min_val, color='gray', linestyle='--', label=f'Min = {min_val} ms')
+plt.axvline(max_val, color='gray', linestyle='--', label=f'Max = {max_val} ms')
 
+# Formatting
+plt.title("Histogram of Button to Audio Latency (Outliers Removed)")
+plt.xlabel("Latency (ms)")
+plt.ylabel("Frequency")
 plt.legend()
+plt.grid(True)
 plt.tight_layout()
 plt.show()
 
 # Save the plot with the same name as the log file with a suffix
 # save it in a directory called figures
+import matplotlib.pyplot as plt
+import numpy as np
 import os
+
 
 # Ensure the 'figures' directory exists
 os.makedirs("figures", exist_ok=True)
 
-log_filename = os.path.basename(log_file)
-plot_filename = f"figures/{os.path.splitext(log_filename)[0]}_latency_plot.svg"
-plt.savefig(plot_filename)
-print(f"Plot saved to {plot_filename}")
+
+base_name = os.path.basename(log_file)
+name, ext = os.path.splitext(base_name)
+output_file = f"figures/{name}_histogram.svg"
+
+plt.savefig(output_file)
+print(f"Histogram saved as {output_file}")
 plt.close()

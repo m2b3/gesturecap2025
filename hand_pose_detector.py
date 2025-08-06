@@ -57,13 +57,13 @@ class HandPoseDetector:
                 label = handedness[0].display_name
                 # Draw landmarks on the image
                 lms_list = list(convert_to_landmark_list(hand_landmarks).landmark)
-                # print(lms_list)
-                # print(lms_list)
-                for landmark in lms_list:
-                    x = int(landmark.x * image.shape[1])
-                    y = int(landmark.y * image.shape[0])
-                    z = int(landmark.z * image.shape[1])
-                    cv2.circle(image, (x, y), 5, (0, 255, 0), -1)
+                
+                # for landmark in lms_list:
+                #     x = int(landmark.x * image.shape[1])
+                #     y = int(landmark.y * image.shape[0])
+                #     z = int(landmark.z * image.shape[1])
+                #     cv2.circle(image, (x, y), 5, (0, 255, 0), -1)
+
                 # Attach label to the hand landmarks object
                 hand["label"] = label
                 hand["landmarks"] = TempHandLandmarks(lms_list)
