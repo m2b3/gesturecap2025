@@ -25,8 +25,6 @@ FRAME_SHAPE = (540, 720, 3)
 FRAME_DTYPE = np.uint8
 TEST_IMG = np.zeros(FRAME_SHAPE, dtype=FRAME_DTYPE)
 
-
-
     
 def producer(shm_name0, shm_name1, cur_idx, stop_event, ts):
 
