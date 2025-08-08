@@ -40,6 +40,7 @@ def producer(shm_name0, shm_name1, cur_idx, stop_event, ts):
         while not stop_event.is_set():
 
                 frame, _ = cam.read_frame()
+                # frame, _ = cam.get_frame()
                 # print("frame produced")
                 if not frame.any():
                     stop_event.set()

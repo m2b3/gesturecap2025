@@ -33,7 +33,8 @@ std_all = np.std(latencies)
 
 # Filter out outliers beyond 3 standard deviations
 z_scores = (latencies - mean_all) / std_all
-filtered_latencies = latencies[np.abs(z_scores) < 3]
+# filtered_latencies = latencies[np.abs(z_scores) < 3]
+filtered_latencies = latencies[np.abs(z_scores) < 10]
 
 # Compute statistics after filtering
 mean_filtered = np.mean(filtered_latencies)

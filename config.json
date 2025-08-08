@@ -1,9 +1,9 @@
 {
-    "device": "A15_gpu",
+    "device": "a15_gpu",
     "baud_rate": 115200,
     "method": "test",
     "frequency": "test",
     "threshold": "test",
-    "pd_delay": "test",
+    "pd_delay": "trst",
     "output_method": "test"
 }
