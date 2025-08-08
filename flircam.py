@@ -142,12 +142,15 @@ class Flircam(VideoInput):
         Note: the numpy array provided by the GetNDArray() function is in readonly mode by default
         """
         try:
+            time_0 = time.perf_counter()
             frame_cam = self.cam.GetNextImage()
-            # chunk_data = frame_cam.GetChunkData()
-            # ts = chunk_data.GetTimestamp() / NS_PER_S
-            # ts = frame_cam.GetTimeStamp()
-            ts = None
+            time_1 = time.perf_counter()
             
+            chunk_data = frame_cam.GetChunkData()
+            ts = chunk_data.GetTimestamp() / NS_PER_S
+            ts = frame_cam.GetTimeStamp()
+            ts = None
+            time_2 = time.perf_counter()
             # print(ts)
             if frame_cam.IsIncomplete():
                 logger.warning('Image incomplete')
@@ -156,7 +159,13 @@ class Flircam(VideoInput):
             frame = frame_conv.GetNDArray()
             frame.flags.writeable = True
             frame_cam.Release()
-            return frame, ts
+            time_3 = time.perf_counter()
+            
+            t_frameacq = time_1 - time_0
+            t_getts = time_2 - time_1
+            t_frameconv = time_3 - time_2
+
+            return frame, ts, (t_frameacq, t_getts, t_frameconv)
         except PySpin.SpinnakerException as e:
             logger.exception(e)
 

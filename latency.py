@@ -29,7 +29,7 @@ def main_loop():
 
     # Setup camera, OSC, detector
     cam = Flircam()
-    cam.start()
+    # cam.start()
     osc_ip, osc_port = '127.0.0.1', 11111
     # osc_ip, osc_port = '192.168.2.2', 11111
     client = udp_client.SimpleUDPClient(osc_ip, osc_port)
@@ -51,7 +51,7 @@ def main_loop():
             t_start = time.time()
 
             # Capture frame
-            frame, ts = cam.read_frame()
+            frame, _,_ = cam.read_frame()
             if not frame.any():
                 break
 
