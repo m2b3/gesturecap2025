@@ -29,7 +29,7 @@ TEST_IMG = np.zeros(FRAME_SHAPE, dtype=FRAME_DTYPE)
 def producer(shm_name0, shm_name1, cur_idx, stop_event, ts):
 
     cam = Flircam()
-    cam.start()
+    # cam.start()
     # time.sleep(1)
     shm0 = shared_memory.SharedMemory(name=shm_name0)
     shm1 = shared_memory.SharedMemory(name=shm_name1)

@@ -4,6 +4,6 @@
     "method": "test",
     "frequency": "test",
     "threshold": "test",
-    "pd_delay": "trst",
+    "pd_delay": "test",
     "output_method": "test"
 }

@@ -6,7 +6,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-class VideoInput(ABC, Thread):
+class VideoInput(ABC):
     """
     Wrapper for all the possible video inputs of the pipeline.
     The frame acquisition process by the app runs its own thread in order not to interfere add any delay in the main loop of the program.
@@ -46,31 +46,3 @@ class VideoInput(ABC, Thread):
         It's  called in the `stop` function
         """
         pass
-
-
-    def run(self):
-        """
-        Abstract method implementation coming from threading.Thread
-        It contains the main loop of this thread.
-        At each iteration, it grabs a new frame and it signals that the image is available via the frame_available threading.Event
-        The while loop stops when the stop_event evnet is triggered. See: function`stop`
-        """
-        while not self.stop_event.is_set():
-            self.frame = self.read_frame()
-            self.frame_available.set()
-
-
-    def stop(self):
-        """
-        Abstract method implementation coming from threading.Thread
-        When called, it triggers the stop_event event and calls the cleanup method
-        """
-        logger.info('Stopping video stream')
-        self.stop_event.set()
-        self.cleanup()
-
-
-    def get_frame(self):
-        self.frame_available.wait()
-        self.frame_available.clear()
-        return self.frame
