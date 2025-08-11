@@ -14,9 +14,9 @@ Calibration script:
 
 def calibrate_and_save(n_noise_frames=100, output_file='calibration.json'):
     cam = Flircam()
-    cam.start()
+    # cam.start()
     # Grab frame for line calibration
-    frame, ts = cam.read_frame()
+    frame, _, _ = cam.read_frame()
     if not frame.any():
         print("Failed to grab calibration frame")
         cam.cleanup()
@@ -52,7 +52,7 @@ def calibrate_and_save(n_noise_frames=100, output_file='calibration.json'):
     print(f"Collecting noise for {n_noise_frames} frames...")
     count = 0
     while count < n_noise_frames:
-        f, ts= cam.read_frame()
+        f, ts, _= cam.read_frame()
         if not f.any(): break
         hands = detector.detect_hand_pose(f)
         if hands:

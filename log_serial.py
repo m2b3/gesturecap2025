@@ -3,6 +3,7 @@ from datetime import datetime
 import time
 import os
 import json
+import csv
 
 # Paths
 default_config_path = 'config.json'
@@ -28,31 +29,24 @@ if os.path.exists(default_config_path):
     if use_cfg == 'y':
         modify = input("Modify this config? [y/N]: ").strip().lower() or 'n'
         if modify == 'y':
-            # Prompt for each key, showing the current value
             for key, prompt in default_keys:
                 current = config.get(key, '')
                 new_val = input(f"{prompt} [{current}]: ").strip()
                 if new_val:
-                    # Cast to int if original was numeric
                     if isinstance(current, int):
                         new_val = int(new_val)
                     config[key] = new_val
-            # Save back
             with open(default_config_path, 'w') as cfg_file:
                 json.dump(config, cfg_file, indent=4)
-        # else: keep loaded config
     else:
-        # Ignore existing config: prompt fresh and overwrite
         for key, prompt in default_keys:
             val = input(f"{prompt}: ").strip()
-            # Cast numbers
             if key in ('baud_rate',):
                 val = int(val)
             config[key] = val
         with open(default_config_path, 'w') as cfg_file:
             json.dump(config, cfg_file, indent=4)
 else:
-    # No config exists: prompt user and save
     print(f"No config file found. Creating new one at {default_config_path}.")
     for key, prompt in default_keys:
         val = input(f"{prompt}: ").strip()
@@ -71,26 +65,33 @@ threshold = config['threshold']
 pd_delay = config['pd_delay']
 output_method = config['output_method']
 
-# Setup output file
+# Setup output files
 basename = f"delay_{method.replace(' ', '_')}_freq{frequency}_th{threshold}_{output_method}.txt"
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
-output_file = os.path.join(output_dir, basename)
+
+output_file_txt = os.path.join(output_dir, basename)
+output_file_csv = os.path.join(output_dir, "tableA.csv")
 
 # Initialize serial connection
 port = "/dev/ttyACM0"
 ser = serial.Serial(port, baud_rate)
 
-with open(output_file, "w+") as f:
-    # Write header metadata
-    f.write(f"# Logging started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+with open(output_file_txt, "w+") as f_txt, open(output_file_csv, "w", newline="") as f_csv:
+    # CSV writer
+    csv_writer = csv.writer(f_csv)
+    csv_writer.writerow(["timestamp_perf_counter", "latency_ms"])  # CSV headers
+
+    # Write header metadata to txt
+    f_txt.write(f"# Logging started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
     for key in config:
-        f.write(f"# {key.replace('_', ' ').title()}: {config[key]}\n")
-    f.write("\n")
-    f.flush()
+        f_txt.write(f"# {key.replace('_', ' ').title()}: {config[key]}\n")
+    f_txt.write("\n")
+    f_txt.flush()
 
     print(f"Logging started with device={device}, method={method}, frequency={frequency}, threshold={threshold}, pd_delay={pd_delay}, output_method={output_method}.")
-    print(f"Saving to {output_file}")
+    print(f"Saving TXT to {output_file_txt}")
+    print(f"Saving CSV to {output_file_csv}")
 
     while True:
         try:
@@ -99,11 +100,18 @@ with open(output_file, "w+") as f:
                 continue
 
             if line.isdigit():
-                timestamp = time.time()
-                entry = f"{timestamp}, {line} ms"
-                print(entry)
-                f.write(entry + "\n")
-                f.flush()
+                timestamp = time.perf_counter()
+                latency_ms = int(line)
+                entry_txt = f"{timestamp}, {latency_ms} ms"
+
+                # Write to TXT
+                print(entry_txt)
+                f_txt.write(entry_txt + "\n")
+                f_txt.flush()
+
+                # Write to CSV
+                csv_writer.writerow([timestamp, latency_ms])
+                f_csv.flush()
 
         except KeyboardInterrupt:
             print("\nLogging stopped by user.")

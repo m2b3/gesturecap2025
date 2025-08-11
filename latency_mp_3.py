@@ -97,8 +97,8 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
              run_folder: str):
     """
     Consumer: reads latest frame, measures detect_hand_pose() time, and on each OSC trigger
-    saves LAST_N_FRAMES frames to a trial folder and appends a CSV row with a pointer to that folder.
-    The CSVs are created once per run inside run_folder.
+    saves LAST_N_FRAMES frames (pre) and POST_N_FRAMES frames (post) to a trial folder and
+    appends a CSV row with a pointer to that folder.
     """
 
     y_line, stdev, mean = load_calibration()
@@ -189,12 +189,12 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
                         counter += 1
                         print(f"Tap #{counter}")
 
-                        # send OSC trigger
+                        # send OSC trigger immediately
                         client.send_message('/trigger', 1)
 
                         writer_time0 = time.perf_counter()
 
-                        # Prepare CSV row (convert seconds -> milliseconds)
+                        # Prepare CSV row (convert seconds -> milliseconds), frames_folder filled later
                         row = [
                             time.perf_counter(),                 # record time (perf counter)
                             counter,                             # tap number
@@ -207,27 +207,24 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
                             ''                                    # placeholder for frames_folder (filled below)
                         ]
 
-                        # Create trial folder and save last N frames synchronously
+                        # Create trial folder and save last N frames synchronously (PRE frames)
                         trial_sub = f"frames/trial_{counter:04d}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                         trial_folder = os.path.join(run_folder, trial_sub)
                         os.makedirs(trial_folder, exist_ok=True)
 
-                        # Save frames (oldest->newest) as PNGs
-                        for i, f in enumerate(list(frame_buffer)):
-                            fname = os.path.join(trial_folder, f'frame_{i:03d}.png')
-                            # Ensure we save as uint8 RGB (matplotlib expects RGB). Many cameras return BGR.
+                        # Save PRE frames (oldest->newest) as pre_frame_***
+                        pre_list = list(frame_buffer)
+                        for i, f in enumerate(pre_list):
+                            fname = os.path.join(trial_folder, f'pre_frame_{i:03d}.png')
                             try:
                                 f_save = f
-                                # clip and cast if not uint8
                                 if f_save.dtype != np.uint8:
                                     f_save = np.clip(f_save, 0, 255).astype(np.uint8)
                                 else:
                                     f_save = f_save.copy()
-
-                                # If image is BGR, convert to RGB by reversing channels
+                                # convert BGR -> RGB (many cameras return BGR)
                                 if f_save.ndim == 3 and f_save.shape[2] == 3:
                                     f_save = f_save[..., ::-1]
-
                                 mpimg.imsave(fname, f_save)
                             except Exception:
                                 try:
@@ -236,9 +233,64 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
                                         f2 = f2[..., ::-1]
                                     mpimg.imsave(fname, f2)
                                 except Exception as e:
-                                    print(f"Failed to save frame {i} for trial {trial_sub}: {e}")
+                                    print(f"Failed to save PRE frame {i} for trial {trial_sub}: {e}")
 
-                        # Fill frames_folder column and append to CSVs
+                        # Now capture POST_N_FRAMES after the trigger.
+                        # We'll wait for new frames by watching ts_value; use a small sleep to avoid 100% spin.
+                        prev_ts = ts_value.value
+                        post_saved = 0
+                        post_fail_count = 0
+
+                        while post_saved < POST_N_FRAMES:
+                            wait_start = time.perf_counter()
+                            # Wait until ts_value updates (new frame) or timeout
+                            while ts_value.value <= prev_ts:
+                                if (time.perf_counter() - wait_start) > POST_FRAME_TIMEOUT_S:
+                                    # timed out waiting for next frame
+                                    post_fail_count += 1
+                                    print(f"Warning: timed out waiting for post frame {post_saved} (trial {counter})")
+                                    break
+                                # short sleep to yield CPU and not affect detection latency too much
+                                time.sleep(0.002)
+                            # If ts updated, grab the newest frame
+                            if ts_value.value > prev_ts:
+                                # read the latest buffer
+                                cur_idx_now = cur_idx.value
+                                if cur_idx_now == 0:
+                                    post_frame = buf0.copy()
+                                else:
+                                    post_frame = buf1.copy()
+
+                                fname = os.path.join(trial_folder, f'post_frame_{post_saved:03d}.png')
+                                try:
+                                    f_save = post_frame
+                                    if f_save.dtype != np.uint8:
+                                        f_save = np.clip(f_save, 0, 255).astype(np.uint8)
+                                    else:
+                                        f_save = f_save.copy()
+                                    if f_save.ndim == 3 and f_save.shape[2] == 3:
+                                        f_save = f_save[..., ::-1]
+                                    mpimg.imsave(fname, f_save)
+                                except Exception:
+                                    try:
+                                        f2 = np.clip(post_frame, 0, 255).astype(np.uint8)
+                                        if f2.ndim == 3 and f2.shape[2] == 3:
+                                            f2 = f2[..., ::-1]
+                                        mpimg.imsave(fname, f2)
+                                    except Exception as e:
+                                        print(f"Failed to save POST frame {post_saved} for trial {trial_sub}: {e}")
+
+                                post_saved += 1
+                                prev_ts = ts_value.value
+                            else:
+                                # timed out: increment prev_ts slightly to avoid infinite loop if camera stalled
+                                prev_ts += 1e-6
+                                # continue to try to capture remaining post frames (or exit if repeated timeouts)
+                                if post_fail_count > POST_N_FRAMES:
+                                    print(f"Multiple post-frame timeouts for trial {counter}; stopping post capture.")
+                                    break
+
+                        # Fill frames_folder column and append to CSVs (written AFTER both pre & post saved)
                         row[-1] = trial_folder
                         with open(archive_csv, 'a', newline='') as af, open(fixed_csv, 'a', newline='') as ff:
                             writer_a = csv.writer(af)
@@ -249,9 +301,7 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
                         # Clear buffer after saving frames so next trial gets fresh frames
                         frame_buffer.clear()
 
-                        print("TIME: ", time.perf_counter()-writer_time0)
-
-
+                        print("TIME: ", time.perf_counter() - writer_time0)
 
     except KeyboardInterrupt:
         print("CONSUMER: KeyboardInterrupt")
@@ -260,7 +310,7 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
         shm0.close()
         shm1.close()
         print("CONSUMER EXITS GRACEFULLY")
-
+        
 
 if __name__ == "__main__":
     mp.set_start_method('forkserver', force=True)
