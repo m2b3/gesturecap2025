@@ -1,9 +1,10 @@
 #define HWSERIAL Serial1
 
 const int buttonPin      = 2;   // Pin where the button is connected
-const int micPin         = 22;  // Pin where the microphone sensor is connected
-const int threshold      = 50;  // Threshold for detecting audio onset
+const int micPin         = 23;  // Pin where the microphone sensor is connected
+const int threshold      = 30;  // Threshold for detecting audio onset
 const int errorThreshold = 5;   // Ignore any delays ≤ this (ms)
+const int upperThreshold = 50;
 
 unsigned long buttonPressTime;
 unsigned long audioDetectTime;
@@ -60,10 +61,12 @@ void loop() {
       if (delta >= threshold) {
         audioDetectTime = millis();
         unsigned long delayTime = audioDetectTime - buttonPressTime;
-        if (delayTime > errorThreshold) {
+        if ((delayTime > errorThreshold) && (delayTime < upperThreshold)){
+        // if ((delayTime > errorThreshold)){
           Serial.println(delayTime);
           Serial.println();
-          delay(100);
+        delay(100);
+
           // HWSERIAL.print(delayTime);
         }
         // Move to “done” so we don’t log again until button release
