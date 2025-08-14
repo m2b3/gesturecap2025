@@ -5,6 +5,25 @@ import os
 import json
 import csv
 
+
+"""
+This script logs latency measurements from a serial device.
+It reads data from the serial port, processes it, and saves it to a text file and a CSV file.
+The configuration is loaded from a JSON file.
+"""
+
+"""
+This script uses a configuration file named 'config.json' with the following keys:
+- device: The device on which the experiment is conducted.
+- baud_rate: The baud rate for the serial connection (e.g., 9600 or 115200).
+- method: A description of the audio detection method used in the experiment, such as raw mic values, delta max-min, etc.
+- frequency: The frequency of the audio signal in Hz.
+- threshold: The threshold value used in the experiment.
+- pd_delay: The delay value in milliseconds.
+- output_method: The method of output such as AUX with speaker-mic, AUX terminals connected directly, or a focusrite with speaker-mic.
+"""
+
+
 # Paths
 default_config_path = 'config.json'
 output_dir = 'latency_logs'

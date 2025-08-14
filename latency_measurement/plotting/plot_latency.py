@@ -1,23 +1,24 @@
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
 
-# log_file = "latency_logs/delay_delta5_freq200_th11_aux.txt"
-# log_file = "latency_logs/delay_delta5_freq200_th60_aux.txt"
-# log_file = "latency_logs/delay_raw_freq200_th200_aux.txt"
-# log_file = "freezed_log_A15/delay_raw_freq200_th80_aux.txt"
-log_file = "latency_logs/delay_test_freqtest_thtest_test.txt"
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="Plot latency data from a CSV log file.")
+parser.add_argument("log_file", type=str, help="Path to the CSV log file containing latency data.")
+args = parser.parse_args()
+
+log_file = args.log_file
 
 # Read and extract latency values
 latencies = []
 with open(log_file, 'r') as f:
-    for line in f:
+    reader = csv.DictReader(f)
+    for row in reader:
         try:
-            parts = line.strip().split(',')
-            if len(parts) == 2:
-                latency_str = parts[1].strip().split()[0]
-                latency = int(latency_str)
-                latencies.append(latency)
-        except:
+            latency = int(row['latency_ms'])
+            latencies.append(latency)
+        except (KeyError, ValueError):
             continue
 
 if not latencies:
@@ -33,8 +34,7 @@ std_all = np.std(latencies)
 
 # Filter out outliers beyond 3 standard deviations
 z_scores = (latencies - mean_all) / std_all
-# filtered_latencies = latencies[np.abs(z_scores) < 3]
-filtered_latencies = latencies[np.abs(z_scores) < 10]
+filtered_latencies = latencies[np.abs(z_scores) < 3]
 
 # Compute statistics after filtering
 mean_filtered = np.mean(filtered_latencies)
@@ -54,11 +54,11 @@ print(f"Standard deviation (filtered): {std_filtered:.2f} ms")
 
 # Plot
 plt.figure(figsize=(10, 5))
-plt.plot(filtered_latencies, marker='o', linestyle='-', color='blue')
+plt.bar(range(len(filtered_latencies)), filtered_latencies, color='blue')
 plt.title("Button to Audio Latency (Outliers Removed)")
 plt.xlabel("Sample Index")
 plt.ylabel("Latency (ms)")
-plt.grid(True)
+plt.grid(axis='y')
 
 # Stats lines
 plt.axhline(mean_filtered, color='green', linestyle='--', label=f'Mean = {mean_filtered:.2f} ms')

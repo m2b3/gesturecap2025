@@ -1,31 +1,29 @@
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-# log_file = "latency_logs/delay_delta5_freq200_th11_aux.txt"
-# log_file = "latency_logs/delay_delta5_freq200_th60_aux.txt"
-# log_file = "latency_logs/delay_raw_freq200_th200_aux.txt"
-log_file = "/home/buxin/program/gesturecap2025/latency_logs/delay_test_freqtest_thtest_test.txt"
-# log_file = "latency_logs/delay_raw_freq200_th80_aux.txt"
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="Plot bar plot of latency data from a CSV log file.")
+parser.add_argument("log_file", type=str, help="Path to the CSV log file containing latency data.")
+args = parser.parse_args()
+
+log_file = args.log_file
 
 # Read and extract latency values
-latencies = []
-with open(log_file, 'r') as f:
-    for line in f:
-        try:
-            parts = line.strip().split(',')
-            if len(parts) == 2:
-                latency_str = parts[1].strip().split()[0]
-                latency = int(latency_str)
-                latencies.append(latency)
-        except:
-            continue
-
-if not latencies:
-    print("No latency data found.")
+try:
+    data = pd.read_csv(log_file)
+    if 'latency_ms' not in data.columns:
+        print("The CSV file does not contain a 'latency_ms' column.")
+        exit()
+    latencies = data['latency_ms'].dropna().astype(int).values
+except Exception as e:
+    print(f"Error reading the CSV file: {e}")
     exit()
 
-# Convert to numpy array
-latencies = np.array(latencies)
+if len(latencies) == 0:
+    print("No latency data found.")
+    exit()
 
 # Compute mean and std of full data
 mean_all = np.mean(latencies)
@@ -51,20 +49,21 @@ print(f"Median latency (filtered): {median_val} ms")
 print(f"Mean latency (filtered): {mean_filtered:.2f} ms")
 print(f"Standard deviation (filtered): {std_filtered:.2f} ms")
 
-# Plot histogram
+# Count frequency of each latency value
+unique_latencies, counts = np.unique(filtered_latencies, return_counts=True)
+
+# Plot bar plot
 plt.figure(figsize=(10, 6))
-plt.hist(filtered_latencies, bins=30, color='skyblue', edgecolor='black', alpha=0.7)
+plt.bar(unique_latencies, counts, color='skyblue', edgecolor='black', alpha=0.7)
 
 # Add vertical lines for stats
 plt.axvline(mean_filtered, color='green', linestyle='--', label=f'Mean = {mean_filtered:.2f} ms')
-plt.axvline(mean_filtered + std_filtered, color='orange', linestyle='--', label=f'+1σ = {mean_filtered + std_filtered:.2f} ms')
-plt.axvline(mean_filtered - std_filtered, color='orange', linestyle='--', label=f'-1σ = {mean_filtered - std_filtered:.2f} ms')
 plt.axvline(median_val, color='purple', linestyle=':', label=f'Median = {median_val:.2f} ms')
 plt.axvline(min_val, color='gray', linestyle='--', label=f'Min = {min_val} ms')
 plt.axvline(max_val, color='gray', linestyle='--', label=f'Max = {max_val} ms')
 
 # Formatting
-plt.title("Histogram of Button to Audio Latency (Outliers Removed)")
+plt.title("Bar Plot of Button to Audio Latency (Outliers Removed)")
 plt.xlabel("Latency (ms)")
 plt.ylabel("Frequency")
 plt.legend()
