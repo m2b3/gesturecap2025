@@ -70,3 +70,22 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
+# Save the plot with the same name as the log file with a suffix
+# save it in a directory called figures
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+
+# Ensure the 'figures' directory exists
+os.makedirs("figures", exist_ok=True)
+
+
+base_name = os.path.basename(log_file)
+name, ext = os.path.splitext(base_name)
+output_file = f"figures/{name}_histogram.svg"
+
+plt.savefig(output_file)
+print(f"Histogram saved as {output_file}")
+plt.close()

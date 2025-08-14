@@ -71,3 +71,16 @@ plt.axhline(max_val, color='gray', linestyle='--', label=f'Max = {max_val} ms')
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+# Save the plot with the same name as the log file with a suffix
+# save it in a directory called figures
+import os
+
+# Ensure the 'figures' directory exists
+os.makedirs("figures", exist_ok=True)
+
+log_filename = os.path.basename(log_file)
+plot_filename = f"figures/{os.path.splitext(log_filename)[0]}_latency_plot.svg"
+plt.savefig(plot_filename)
+print(f"Plot saved to {plot_filename}")
+plt.close()
