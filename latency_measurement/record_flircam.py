@@ -1,6 +1,6 @@
 import time
 import cv2
-from flircam import Flircam
+from video.flircam import Flircam
 
 from multiprocessing import Process, Queue
 
@@ -27,14 +27,14 @@ def main():
     cam.start()
 
     # Configuration
-    filename = "fixedfps_recording_1.avi"
+    filename = "recording.avi"
     w, h = (720, 540)
     fps = 300.0  # <- Set your desired FPS here
 
     queue = Queue(maxsize=100)
     p = Process(target=writer, args=(queue, filename, fps, w, h))
     p.start()
-    frame, ts = cam.read_frame()
+    frame, ts, _ = cam.read_frame()
 
     recording = False
     recording_index = 1
@@ -46,7 +46,7 @@ def main():
     try:
         while True:
             # ret, frame = cap.read()
-            frame, ts = cam.read_frame()
+            frame, ts, _ = cam.read_frame()
             if not frame.any():
                 print("Failed to grab frame.")
                 break

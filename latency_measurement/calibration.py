@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-from hand_pose_detector import HandPoseDetector
-from flircam import Flircam
+from utils.hand_pose_detector import HandPoseDetector
+from video.flircam import Flircam
 
 """
 Calibration script:
@@ -12,7 +12,7 @@ Calibration script:
 - Saves results to calibration.json (or prints to stdout)
 """
 
-def calibrate_and_save(n_noise_frames=100, output_file='calibration.json'):
+def calibrate_and_save(n_noise_frames=100, output_file='config/calibration.json'):
     cam = Flircam()
     # cam.start()
     # Grab frame for line calibration

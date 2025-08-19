@@ -3,7 +3,21 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
-from utils.mediapipe import convert_to_landmark_list
+from typing import List
+
+from mediapipe.tasks.python.components.containers import landmark as landmark_module
+
+from mediapipe.framework.formats import landmark_pb2
+
+def convert_to_landmark_list(normalized_landmarks: List[landmark_module.NormalizedLandmark]) -> landmark_pb2.NormalizedLandmarkList:
+    landmark_list = landmark_pb2.NormalizedLandmarkList()
+    for landmark in normalized_landmarks:
+        new_landmark = landmark_list.landmark.add()
+        new_landmark.x = landmark.x
+        new_landmark.y = landmark.y
+        new_landmark.z = landmark.z
+    return landmark_list
+
 
 class TempHandLandmarks:
     def __init__(self, landmark_list):
@@ -26,7 +40,7 @@ class HandPoseDetector:
         self.mp_hands = mp.solutions.hands
         self.mp_drawing = mp.solutions.drawing_utils
         base_options = python.BaseOptions(
-            model_asset_path='hand_landmarker.task',  # You'll need to download this model
+            model_asset_path='models/hand_landmarker.task',  # You'll need to download this model
             delegate=python.BaseOptions.Delegate.GPU if device == 'gpu' else python.BaseOptions.Delegate.CPU
             # delegate=python.BaseOptions.Delegate.GPU
             # delegate=python.BaseOptions.Delegate.CPU
