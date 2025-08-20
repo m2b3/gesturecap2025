@@ -116,18 +116,14 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
     buf1 = np.ndarray(FRAME_SHAPE, dtype=FRAME_DTYPE, buffer=shm1.buf)
 
     # Prepare CSV files inside experiment folder
-    now_str = datetime.now().strftime('%Y%m%d_%H%M%S')
-    archive_csv = os.path.join(run_folder, f"tableB_{now_str}.csv")
     fixed_csv = os.path.join(run_folder, 'tableB.csv')
 
     header = ['record_time_perf', 'tap_number', 'frame_age_ms',
               't_read_total_ms', 't_frameacq_ms', 't_getts_ms', 't_frameconv_ms',
               'detect_time_ms', 'frames_folder']
 
-    with open(archive_csv, 'w', newline='') as af, open(fixed_csv, 'w', newline='') as ff:
-        writer_a = csv.writer(af)
+    with open(fixed_csv, 'w', newline='') as ff:
         writer_f = csv.writer(ff)
-        writer_a.writerow(header)
         writer_f.writerow(header)
 
     time.sleep(0.5)  # warm up
@@ -205,10 +201,8 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
                             frame_buffer.clear()
 
                         row[-1] = trial_folder
-                        with open(archive_csv, 'a', newline='') as af, open(fixed_csv, 'a', newline='') as ff:
-                            writer_a = csv.writer(af)
+                        with open(fixed_csv, 'a', newline='') as ff:
                             writer_f = csv.writer(ff)
-                            writer_a.writerow(row)
                             writer_f.writerow(row)
 
     except KeyboardInterrupt:
