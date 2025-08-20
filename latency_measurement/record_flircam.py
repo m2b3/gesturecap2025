@@ -24,7 +24,6 @@ def main():
     
     # Initialize hand pose detector and FLIR camera
     cam = Flircam()
-    cam.start()
 
     # Configuration
     filename = "recording.avi"

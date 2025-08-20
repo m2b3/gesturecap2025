@@ -13,7 +13,7 @@ from utils.hand_pose_detector import HandPoseDetector
 import matplotlib.image as mpimg
 
 
-def load_calibration(calib_file='calibration.json'):
+def load_calibration(calib_file='config/calibration.json'):
     with open(calib_file, 'r') as fp:
         data = json.load(fp)
     return data['y_line'], data['std_offset'], data['mean_offset']
@@ -30,11 +30,11 @@ FRAME_DTYPE = np.uint8
 LAST_N_FRAMES = 7  # save the last N frames per trial
 
 # ---- New flag ----
-SAVE_FRAMES = True  # set to False to disable frame saving
+SAVE_FRAMES = False  # set to False to disable frame saving
 
 
 # ---------------------- Config + Output Folder ----------------------
-def load_experiment_folder(config_path="config.json", base_output="latency_logs"):
+def load_experiment_folder(config_path="config/log_config.json", base_output="latency_logs"):
     with open(config_path, "r") as cfg_file:
         config = json.load(cfg_file)
 

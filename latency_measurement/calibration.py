@@ -14,7 +14,7 @@ Calibration script:
 
 def calibrate_and_save(n_noise_frames=100, output_file='config/calibration.json'):
     cam = Flircam()
-    # cam.start()
+
     # Grab frame for line calibration
     frame, _, _ = cam.read_frame()
     if not frame.any():
@@ -73,7 +73,7 @@ def calibrate_and_save(n_noise_frames=100, output_file='config/calibration.json'
 
     # Save to file
     import json
-    with open(output_file, 'w') as fp:
+    with open(output_file, 'w+') as fp:
         json.dump({'y_line': y_line, 'std_offset': std_offset, 'mean_offset':mean_offset}, fp)
     print(f"Calibration saved to {output_file}")
     cam.cleanup()

@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 import PySpin
-from video_input import VideoInput
+from video.video_input import VideoInput
 import time
 
 # Initialize logger

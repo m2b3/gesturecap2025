@@ -5,7 +5,6 @@ from video.flircam import Flircam
 def main():
     # Initialize FLIR camera
     cam = Flircam()
-    cam.start()
 
     print("Press 'q' to quit.")
 
