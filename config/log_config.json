@@ -1,0 +1,9 @@
+{
+    "device": "A15",
+    "baud_rate": 115200,
+    "method": "test",
+    "frequency": "test",
+    "threshold": "test",
+    "pd_delay": "test",
+    "output_method": "test"
+}
