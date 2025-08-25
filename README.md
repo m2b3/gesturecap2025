@@ -52,9 +52,175 @@ The calibration can be repeated anytime and adapts automatically to changes in c
 With a high-FPS camera and a good GPU, we are able to achieve a median latency of 13ms.
 For more details on the latency measurement setup/results, read (link to the other README.md in latency measurement folder, to be made)
 
-## Instructions to setup (brief version of the gesturecap manual)
-### Sections like hardware, software
-- Inclusion: Can implement another video interface other than flircam
+## Latency Measurement Instructions
+
+### 1. Software Setup (GPU Configuration)
+
+**Boost GPU clocks before starting experiments:**
+```bash
+sudo nvidia-smi -lgc=3000,3000 && sudo nvidia-smi -lmc 8000,8000
+```
+
+**Check GPU clocks:**
+```bash
+nvidia-smi -q -d CLOCK
+```
+
+**Reset GPU clocks after experiment:**
+```bash
+sudo nvidia-smi --reset-memory-clocks && sudo nvidia-smi --reset-gpu-clocks
+```
+
+**Run scripts with GPU:**
+Use your system's GPU execution command for all main Python scripts. For NVIDIA Optimus systems:
+```bash
+prime-run python latency_mp.py
+```
+
+**Scripts Involved:**
+- `record_flircam.py` – camera positioning
+- `calibration.py` – set reference line and calibration distance
+- `latency_mp.py` – latency testing
+- `log_serial.py` – serial logging from Teensy
+- `join_tables.py` – combine latency logs into a CSV
+
+### 2. Audio Setup
+
+- Connect AUX cable from your computer to the speaker
+- Place the microphone sensor close to the speaker membrane
+
+### 3. Teensy Setup – Microphone + Speaker Mode
+
+- Connect Teensy pins: GND → Ground, 3V → VCC, A0 → Pin 23 (or whichever analog pin you configure)
+- Confirm selected pin matches the Teensy code
+- Upload the `raw_data_plot` code to the Teensy to check values in silent conditions
+- Set the threshold in `latency.ino` comfortably above the silent baseline level
+- Test the setup by tapping the microphone and observing the readings
+
+### 4. Teensy Setup – Raw AUX Analog Mode
+
+- Use an open-ended AUX wire: Ground terminal → GND on Teensy, Positive terminal → Analog pin (currently Pin 23)
+- Repeat the steps for Teensy code and `raw_data_plot` upload
+- Set threshold in `latency.ino` comfortably above silent readings
+
+### 5. Threshold Configuration
+
+**Setting Limits in latency.ino:**
+- Lower limit: theoretical minimum latency minus a few ms for margin
+- Upper limit: theoretical maximum latency plus a few ms
+- This prevents spurious readings outside expected bounds
+
+**Current Reference Values:**
+- Raw analog AUX: threshold = 30
+- Microphone + speaker: threshold = 80
+
+*Note: These values were determined by observing silent readings with `raw_data_plot`. Adjust if you notice false positives or missed taps.*
+
+### 6. Physical Setup – Hand Tap Sensor
+
+- Paste aluminum foil at the edge of a flat surface
+- Connect any Teensy GND pin to the foil using an alligator clip/wire
+- Connect a wire to the buttonPin (currently Pin 2)
+- Attach this wire to the side of your left pinky finger, minimizing obstruction of the back of your hand
+- Connect the Teensy to your computer via USB
+
+### 7. Camera Setup
+
+- Connect the FLIR camera to your computer
+- Run camera positioning script:
+```bash
+prime-run python record_flircam.py  # or your GPU command
+```
+- Adjust camera so foil edge is parallel to the reference line
+- Press 'q' to close
+
+### 8. Calibration
+
+```bash
+prime-run python calibration.py  # or your GPU command
+```
+
+- Click twice along the foil edge with maximum precision
+- Keep left hand vertical on surface with pinky resting sideways on foil
+- Script measures distance between Avg(y-coord(17 to 20)) and reference line for 1 second
+- Ensure right hand is not visible during measurement
+
+### 9. Calibration Verification
+
+```bash
+prime-run python latency_mp.py  # or your GPU command
+```
+
+**Run these tests:**
+- **Hover test:** Taps should only trigger when hand is very close to foil (< few mm)
+- **Rapid taps test:** Tap rapidly - false positives should be rare (about 1 in 7 or better)
+- **Still hand test:** Rest hand sideways on surface - no taps should register when stationary
+
+*If tests fail, repeat calibration and adjust camera exposure in `flircam.py` or room lighting.*
+
+### 10. Audio Software Setup (PureData)
+
+- Open PureData and load `beep.pd`
+- Set frequency to 200 Hz
+- Go to Audio Settings: select AUX output device, set delay = 3 ms
+- Test by pressing button in PureData to confirm sound plays from speaker
+
+### 11. Data Collection
+
+**Start the measurement:**
+```bash
+prime-run python latency_mp.py  # or your GPU command
+```
+
+**In a separate terminal, start logging:**
+```bash
+python log_serial.py
+```
+
+**Configuration:**
+- Script uses `config.json` with these keys:
+  - `device`: Experiment device name
+  - `baud_rate`: Serial connection rate (9600 or 115200)
+  - `method`: Audio detection method description
+  - `frequency`: Audio signal frequency (Hz)
+  - `threshold`: Detection threshold value
+  - `pd_delay`: PureData delay (milliseconds)
+  - `output_method`: Output method (AUX + speaker-mic, direct AUX, etc.)
+
+**Data Collection:**
+- Re-attach wire to pinky
+- Test with a few taps to confirm latencies are logging
+- Restart both scripts and begin experiment
+- Perform approximately 250 taps to obtain ~200 valid latency samples
+
+### 12. Data Processing
+
+```bash
+prime-run python join_tables.py --tablea path/to/TableA.csv \
+    --tableb path/to/TableB.csv --out path/to/final.csv --tol_ms 50
+```
+
+**Output:**
+- Two files saved: `TableA.csv`, `TableB.csv`
+- `join_tables.py` handles false positives/negatives automatically
+- Final CSV contains total latency and breakdown of internal latencies for each tap
+
+### 13. Optional – Pre-Tap Frame Capture
+
+In the `latency_mp.py` script, set `SAVE_FRAMES = True`
+
+
+- Saves `LAST_N_FRAMES` before tap detection (default to `7`)
+- Wait at least 500ms between taps (saving 7 frames require 500ms)
+
+### 14. Cleanup
+
+- Disconnect the FLIR camera
+- Disconnect the Teensy from USB
+- Reset GPU clocks to default settings:
+```bash
+sudo nvidia-smi --reset-memory-clocks && sudo nvidia-smi --reset-gpu-clocks
+```
 
 ## Future work:
 - Codebase: dockerisation
