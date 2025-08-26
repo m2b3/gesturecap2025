@@ -50,7 +50,6 @@ The calibration can be repeated anytime and adapts automatically to changes in c
 ## Results
 
 With a high-FPS camera and a good GPU, we are able to achieve a median latency of 13ms.
-For more details on the latency measurement setup/results, read (link to the other README.md in latency measurement folder, to be made)
 
 ## Latency Measurement Instructions
 
@@ -78,11 +77,11 @@ prime-run python latency_mp.py
 ```
 
 **Scripts Involved:**
-- `record_flircam.py` – camera positioning
-- `calibration.py` – set reference line and calibration distance
-- `latency_mp.py` – latency testing
-- `log_serial.py` – serial logging from Teensy
-- `join_tables.py` – combine latency logs into a CSV
+- `latency_measurement/preview_flircam.py` – camera positioning
+- `latency_measurement/calibration.py` – set reference line and calibration distance
+- `latency_measurement/latency_mp.py` – latency testing
+- `latency_measurement/log_serial.py` – serial logging from Teensy
+- `data_cleanup/join_tables.py` – combine latency logs into a CSV
 
 ### 2. Audio Setup
 
@@ -129,7 +128,7 @@ prime-run python latency_mp.py
 - Connect the FLIR camera to your computer
 - Run camera positioning script:
 ```bash
-prime-run python record_flircam.py  # or your GPU command
+prime-run python preview_flircam.py  # or your GPU command
 ```
 - Adjust camera so foil edge is parallel to the reference line
 - Press 'q' to close
@@ -222,12 +221,33 @@ In the `latency_mp.py` script, set `SAVE_FRAMES = True`
 sudo nvidia-smi --reset-memory-clocks && sudo nvidia-smi --reset-gpu-clocks
 ```
 
-## Future work:
-- Codebase: dockerisation
-- Codebase: implementing multiprocessing in the main repository
-- Optimisation: implementing multiple mediapipe workers
+## For Future Contributors:
+
+### Multiprocessing Integration
+The multiprocessing implementation from this GSoC project needs to be integrated into the original GestureCap repository: [m2b3/gesturecap](https://github.com/m2b3/gesturecap)
+
+Future contributors should focus on merging this multiprocessing code into the main codebase and ensuring it maintains project integrity while improving performance.
+
+### Optimization: Multiple MediaPipe Workers
+Currently, the consumer process handles both MediaPipe frame processing and OSC signal production. This can be further optimized by separating these tasks:
+
+- **MediaPipe Worker Pool:** Create multiple MediaPipe processors that work in parallel to extract landmarks from frames as soon as they become available
+- **OSC Signal Process:** A separate process that takes landmarks from the worker pool, maps them to gestures, and sends OSC signals
+
+### Dockerization
+The project should be containerized using Docker to resolve dependency issues with the Spinnaker SDK. Consider using UV for faster Python package management.
+Key Requirements:
+
+- Proper GPU passthrough configuration to maintain low-latency performance
+- Hardware device access for camera and audio interfaces
+- USB device passthrough for Teensy/serial connections
 
 
-## About me 
-(tbf)
+## About Me
+
+Deepansh is an undergraduate Computer Science and Engineering Student from India. He has a strong passion for Robotics, Perception and HCI-systems.
+Additionally, he holds the position of core member in a Robotics Research and Development Society called A.T.O.M Robotics Lab at his college. 
+Deepansh enjoys learning new technologies, building cool things, and automating tasks.
+
+
 
