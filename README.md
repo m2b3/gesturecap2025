@@ -11,6 +11,8 @@ We also reworked the GestureCap pipeline by moving from a multithreaded to a mul
 
 In addition, we introduced a calibration system for real-time trigger detection, which ensures accurate and consistent measurements across different test runs. With these optimizations, GestureCap now delivers faster and more reliable gesture-to-sound interaction, especially when paired with a high FPS camera.
 
+
+
 ## Contributions
 
 ### Latency Measurement system
@@ -46,10 +48,17 @@ This setup is currently used for **surface trigger detection**, but the same log
 
 The calibration can be repeated anytime and adapts automatically to changes in camera alignment, lighting, or hand position, keeping detection **accurate and consistent across sessions and hardware setups**.  
 
-
 ## Results
 
 With a high-FPS camera and a good GPU, we are able to achieve a median latency of 13ms.
+
+#### Camera: [Blackfly S BFS-U3-04S2C](https://www.flir.fr/products/blackfly-s-usb3/?vertical=machine+vision&segment=iis)
+
+ - This is a 522 FPS USB-3 based camera
+ - As this camera has a bunch of configurable parameters, the corresponding wrapper class uses the ones fitting this model the best. Therefore these parameters should be adapted if another model is used.
+
+#### Laptop : ASUS TUF A15, an RTX-4060 based laptop, with 16GB of RAM and Ryzen 9 CPU.
+
 
 ## Latency Measurement Instructions
 
