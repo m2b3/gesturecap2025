@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 from gestures.tap_mapper import TapMapper
 from gestures.pinch_mapper import PinchMapper
 from gestures.velocity_mapper import VelocityMapper
+from gestures.composite_mapper import CompositeMapper
 
 
 FRAME_SHAPE = (540, 720, 3)
@@ -167,3 +168,38 @@ class TestVelocityMapper:
         assert mapper.prev_center is None
         assert mapper.prev_time is None
         assert not mapper.swiping
+
+
+# CompositeMapper
+
+class TestCompositeMapper:
+    def test_merges_outputs(self):
+        tap = TapMapper()
+        pinch = PinchMapper()
+        comp = CompositeMapper([tap, pinch])
+        comp.configure(CALIBRATION)
+
+        y_norm = CALIBRATION['y_line'] / FRAME_SHAPE[0]
+        # hand near the line AND with thumb-index close together
+        hand = make_hand('Left', {
+            4: (0.5, 0.5), 8: (0.505, 0.5),
+            17: (0.5, y_norm), 18: (0.5, y_norm),
+            19: (0.5, y_norm), 20: (0.5, y_norm),
+        })
+        messages = comp.process([hand], FRAME_SHAPE)
+        addrs = [a for a, v in messages]
+        # should have tap trigger AND pinch messages
+        assert '/trigger' in addrs
+        assert '/pinch/distance' in addrs
+        assert '/pinch/trigger' in addrs
+
+    def test_reset_all(self):
+        tap = TapMapper()
+        pinch = PinchMapper()
+        comp = CompositeMapper([tap, pinch])
+        comp.configure(CALIBRATION)
+        tap.state = 1
+        pinch.pinched = True
+        comp.reset()
+        assert tap.state == 0
+        assert not pinch.pinched
