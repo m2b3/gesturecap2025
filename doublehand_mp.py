@@ -254,7 +254,8 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    mp.set_start_method("forkserver", force=True)
+    mp.freeze_support()
+    mp.set_start_method("spawn", force=True)
 
     size = int(np.prod(FRAME_SHAPE) * np.dtype(FRAME_DTYPE).itemsize)
     shm0 = shared_memory.SharedMemory(create=True, size=size)

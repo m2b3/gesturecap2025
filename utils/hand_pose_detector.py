@@ -1,13 +1,14 @@
 import cv2
+import sys
+from pathlib import Path
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 from typing import List
-
 from mediapipe.tasks.python.components.containers import landmark as landmark_module
 
-from mediapipe.framework.formats import landmark_pb2
+
 
 def convert_to_landmark_list(normalized_landmarks: List[landmark_module.NormalizedLandmark]) -> landmark_pb2.NormalizedLandmarkList:
     landmark_list = landmark_pb2.NormalizedLandmarkList()
@@ -24,27 +25,38 @@ class TempHandLandmarks:
         self.landmark = landmark_list
 
 class HandPoseDetector:
-    def __init__(self, n_hands=1, device: str = 'cpu'):
-        """
-        Initializes the HandLandmarker.
+    def __init__(self, n_hands=1, device: str = "cpu"):
 
-
-        Parameters:
-        ---
-        n_hands: int, default=2
-            The maximum number of hands to detect in each frame
-
-        device: str, default = 'cpu'
-            The device to run the model on. Choose between 'cpu' and 'gpu'.
-        """
         self.mp_hands = mp.solutions.hands
         self.mp_drawing = mp.solutions.drawing_utils
+
+        if getattr(sys, "frozen", False):
+            model_path = Path(sys._MEIPASS) / "models" / "hand_landmarker.task"
+        else:
+            model_path = (
+                Path(__file__).resolve().parent.parent
+                / "models"
+                / "hand_landmarker.task"
+            )
+
         base_options = python.BaseOptions(
-            model_asset_path='models/hand_landmarker.task',  # You'll need to download this model
-            delegate=python.BaseOptions.Delegate.GPU if device == 'gpu' else python.BaseOptions.Delegate.CPU
-            # delegate=python.BaseOptions.Delegate.GPU
-            # delegate=python.BaseOptions.Delegate.CPU
+            model_asset_path=str(model_path),
+            delegate=(
+                python.BaseOptions.Delegate.GPU
+                if device == "gpu"
+                else python.BaseOptions.Delegate.CPU
+            ),
         )
+
+        options = vision.HandLandmarkerOptions(
+            base_options=base_options,
+            num_hands=n_hands,
+            min_hand_detection_confidence=0.5,
+            min_hand_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+        )
+
+        self.hands = vision.HandLandmarker.create_from_options(options)
         options = vision.HandLandmarkerOptions(
             base_options=base_options,
             num_hands=n_hands,
