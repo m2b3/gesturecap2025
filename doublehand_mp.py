@@ -104,6 +104,8 @@ def draw_hand(frame, landmarks, label):
 def producer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
              t_read_total_v, t_frameacq_v, t_getts_v, t_frameconv_v):
 
+    print(f"PRODUCER START {time.perf_counter():.3f}")
+
     cam  = WebcamInput(width=FRAME_SHAPE[1], height=FRAME_SHAPE[0])
     shm0 = shared_memory.SharedMemory(name=shm_name0)
     shm1 = shared_memory.SharedMemory(name=shm_name1)
@@ -152,12 +154,25 @@ def producer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
 def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
              t_read_total_v, t_frameacq_v, t_getts_v, t_frameconv_v):
 
+    print(f"CONSUMER START {time.perf_counter():.3f}")
+
     client = udp_client.SimpleUDPClient(OSC_IP, OSC_PORT)
+
+    print("CREATING HANDPOSEDETECTOR")
+
+    t0 = time.perf_counter()
+
     detector = HandPoseDetector(n_hands=2, device="cpu")
+
+    print(
+        f"HANDPOSEDETECTOR READY IN {(time.perf_counter() - t0) * 1000:.0f} ms"
+    )
+
     print("HandPoseDetector initialisé (CPU)")
 
     shm0 = shared_memory.SharedMemory(name=shm_name0)
     shm1 = shared_memory.SharedMemory(name=shm_name1)
+
     buf0 = np.ndarray(FRAME_SHAPE, dtype=FRAME_DTYPE, buffer=shm0.buf)
     buf1 = np.ndarray(FRAME_SHAPE, dtype=FRAME_DTYPE, buffer=shm1.buf)
 
@@ -254,6 +269,9 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+
+    print(f"MAIN START {time.perf_counter():.3f}")
+
     mp.freeze_support()
     mp.set_start_method("spawn", force=True)
 

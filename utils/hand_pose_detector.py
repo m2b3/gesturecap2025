@@ -27,8 +27,9 @@ class TempHandLandmarks:
 class HandPoseDetector:
     def __init__(self, n_hands=1, device: str = "cpu"):
 
-        self.mp_hands = mp.solutions.hands
-        self.mp_drawing = mp.solutions.drawing_utils
+        # Ancienne API MediaPipe (non utilisée)
+        # self.mp_hands = mp.solutions.hands
+        # self.mp_drawing = mp.solutions.drawing_utils
 
         if getattr(sys, "frozen", False):
             model_path = Path(sys._MEIPASS) / "models" / "hand_landmarker.task"
@@ -56,14 +57,6 @@ class HandPoseDetector:
             min_tracking_confidence=0.5,
         )
 
-        self.hands = vision.HandLandmarker.create_from_options(options)
-        options = vision.HandLandmarkerOptions(
-            base_options=base_options,
-            num_hands=n_hands,
-            min_hand_detection_confidence=0.5,
-            min_hand_presence_confidence=0.5,
-            min_tracking_confidence=0.5,
-        )
         self.hands = vision.HandLandmarker.create_from_options(options)
 
     def detect_hand_pose(self, image): # image is pass by reference, any operations done to the frame inside this method will be reflected in method call origin.
@@ -99,6 +92,15 @@ class HandPoseDetector:
 def main():
     # Initialize the hand pose detector
     hand_pose_detector = HandPoseDetector()
+    print("Creating HandPoseDetector...")
+
+    t0 = time.perf_counter()
+
+    detector = HandPoseDetector(n_hands=2, device="cpu")
+
+    print(
+        f"HandPoseDetector ready in {(time.perf_counter() - t0) * 1000:.0f} ms"
+    )
 
     # Open a video capture stream (you can replace this with your own image or video input)
     cap = cv2.VideoCapture(1)
