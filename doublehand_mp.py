@@ -40,7 +40,7 @@ FRAME_DTYPE = np.uint8
 OSC_IP   = "127.0.0.1"
 OSC_PORT = 11111
 
-SHOW_PREVIEW = True   # set to False to disable the landmark preview window
+SHOW_PREVIEW = True  # set to False to disable the landmark preview window
 
 
 # ==================================================
@@ -64,21 +64,18 @@ JOINT_NAMES = [
     "pinky_mcp",        "pinky_pip",        "pinky_dip",        "pinky_tip",
 ]
 
-
-# ── Drawing helpers ───────────────────────────────────────────────────────────
-# MediaPipe hand connections (pairs of landmark indices)
 _HAND_CONNECTIONS = [
-    (0,1),(1,2),(2,3),(3,4),         # thumb
-    (0,5),(5,6),(6,7),(7,8),         # index
-    (0,9),(9,10),(10,11),(11,12),    # middle
-    (0,13),(13,14),(14,15),(15,16),  # ring
-    (0,17),(17,18),(18,19),(19,20),  # pinky
-    (5,9),(9,13),(13,17),            # palm
+    (0,1),(1,2),(2,3),(3,4),
+    (0,5),(5,6),(6,7),(7,8),
+    (0,9),(9,10),(10,11),(11,12),
+    (0,13),(13,14),(14,15),(15,16),
+    (0,17),(17,18),(18,19),(19,20),
+    (5,9),(9,13),(13,17),
 ]
 
 _COLORS = {
-    "left":  (  0, 200,   0),   # green
-    "right": (200,   0, 200),   # purple
+    "left":  (2, 150, 225),      # or / ambre
+    "right": (226, 107, 93),     # bleu-violet approché
 }
 
 
@@ -233,15 +230,12 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
                     client.send_message(f"/hand/{label}", values)
 
             if SHOW_PREVIEW:
-                preview = frame.copy()
+                preview = np.zeros_like(frame)
+
                 if hands:
                     for hand in hands:
                         label = hand.get("label", "").lower()
 
-                        # ==================================================
-                        # MIKAEL MODIFICATION
-                        # Invert hand labels when FLIP is enabled
-                        # ==================================================
                         if FLIP:
                             if label == "left":
                                 label = "right"
@@ -249,9 +243,14 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
                                 label = "left"
 
                         if label:
-                            draw_hand(preview, hand["landmarks"].landmark, label)
+                            draw_hand(
+                                preview,
+                                hand["landmarks"].landmark,
+                                label
+                            )
 
                 cv2.imshow("doublehand_mp", preview)
+
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     stop_event.set()
                     break
