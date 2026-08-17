@@ -1,11 +1,11 @@
 # macOS Camera Permissions
 
-DriftMap embeds a standalone MediaPipe/OpenCV tracker inside the Max/MSP application bundle.
+This document describes a macOS camera permission workflow for standalone applications embedding a MediaPipe/OpenCV tracker.
 
-The tracker is launched through Node for Max:
+A common deployment architecture is:
 
 ```text
-DriftMap.app
+YourApp.app
     ↓
 Node for Max
     ↓
@@ -18,26 +18,28 @@ OpenCV / MediaPipe
 Camera
 ```
 
-## Problem
+---
 
-The tracker worked when launched directly from Terminal, but failed when launched from inside the Max standalone:
+# Problem
+
+The tracker may work correctly when launched directly from Terminal but fail when launched from a standalone application:
 
 ```text
 OpenCV: not authorized to capture video
 Could not open webcam at index 0
 ```
 
-The issue was not caused by MediaPipe, OpenCV, PyInstaller, or `spawn()` itself.
-
-The Max standalone already contained:
+In many cases, the application already contains:
 
 ```text
 NSCameraUsageDescription
 ```
 
-but the application did not have the macOS camera entitlement attached to its code signature.
+but the application bundle has not been signed with the appropriate camera entitlement.
 
-## Camera entitlement
+---
+
+# Camera Entitlement
 
 Create an `entitlements.plist` file:
 
@@ -54,29 +56,41 @@ Create an `entitlements.plist` file:
 </plist>
 ```
 
-Check that the file is valid:
+Validate the file:
 
 ```bash
 plutil -lint entitlements.plist
 ```
 
-## Apply the entitlement
+Expected output:
 
-After building DriftMap and adding the tracker to the application bundle, re-sign the application locally:
+```text
+entitlements.plist: OK
+```
+
+---
+
+# Apply the Entitlement
+
+After building the standalone application and copying the tracker into the application bundle, re-sign the application locally:
 
 ```bash
 codesign --force --deep \
   --entitlements entitlements.plist \
   --sign - \
-  /Applications/DriftMap.app
+  /Applications/YourApp.app
 ```
 
 `--sign -` creates an ad-hoc signature suitable for local development and testing.
 
-## Verify the entitlement
+---
+
+# Verify the Entitlement
+
+Display the active entitlements:
 
 ```bash
-codesign -d --entitlements :- /Applications/DriftMap.app
+codesign -d --entitlements :- /Applications/YourApp.app
 ```
 
 The output should contain:
@@ -86,39 +100,51 @@ The output should contain:
 <true/>
 ```
 
-## Reset camera permissions during development
+---
 
-DriftMap uses the bundle identifier:
+# Reset Camera Permissions During Development
 
-```text
-com.mikael.driftmap
-```
-
-To force macOS to request camera permission again:
+Retrieve the application's bundle identifier:
 
 ```bash
-tccutil reset Camera com.mikael.driftmap
+defaults read /Applications/YourApp.app/Contents/Info CFBundleIdentifier
 ```
 
-Then quit and reopen DriftMap.
-
-macOS should display a camera permission request when the tracker attempts to open the webcam.
-
-## Post-build workflow
+Example:
 
 ```text
-Build DriftMap.app in Max
+com.company.yourapp
+```
+
+Reset the camera permission:
+
+```bash
+tccutil reset Camera com.company.yourapp
+```
+
+Then:
+
+1. Quit the application.
+2. Launch the application again.
+3. Allow camera access when macOS requests permission.
+
+---
+
+# Standalone Deployment Workflow
+
+```text
+Build YourApp.app
         ↓
-Copy the PyInstaller tracker into
+Copy PyInstaller tracker into
 Contents/Resources/tracker/
         ↓
 Verify NSCameraUsageDescription
         ↓
 Apply com.apple.security.device.camera
         ↓
-Re-sign DriftMap.app
+Re-sign YourApp.app
         ↓
-Launch DriftMap
+Launch YourApp
         ↓
 macOS requests camera permission
         ↓
@@ -127,21 +153,92 @@ Node launches doublehand_mp
 OpenCV / MediaPipe accesses the camera
 ```
 
-## Automated helper
+---
 
-The same process can be automated with:
+# Tracker Deployment
+
+The complete PyInstaller build should be copied into:
 
 ```text
-prepare_driftmap.command
+YourApp.app
+└── Contents
+    └── Resources
+        └── tracker
+            └── doublehand_mp
 ```
 
-The helper script:
+Including:
 
-* copies the complete PyInstaller tracker into the app bundle;
-* checks `NSCameraUsageDescription`;
-* validates `entitlements.plist`;
-* applies the camera entitlement;
-* re-signs DriftMap locally;
-* verifies the resulting signature.
+```text
+doublehand_mp
+_internal/
+```
 
-This local ad-hoc signing step is for development/testing. It is separate from Developer ID signing and notarization used for public macOS distribution.
+Do not copy only the executable.
+
+The full PyInstaller directory structure is required.
+
+---
+
+# Automated Helper Script
+
+The entire process can be automated with a deployment script such as:
+
+```text
+prepare_tracker.command
+```
+
+Typical tasks include:
+
+- Copying the PyInstaller tracker into the application bundle
+- Checking `NSCameraUsageDescription`
+- Validating `entitlements.plist`
+- Applying the camera entitlement
+- Re-signing the application bundle
+- Verifying the resulting signature
+
+---
+
+# Notes
+
+This workflow is intended for local development and testing.
+
+Ad-hoc signing:
+
+```bash
+--sign -
+```
+
+does not replace:
+
+- Developer ID signing
+- Notarization
+- App Store distribution requirements
+
+For public distribution, standard Apple code-signing and notarization workflows should be used.
+
+---
+
+# Known Symptom
+
+A common sign of a camera permission or signing issue is:
+
+```text
+OpenCV: not authorized to capture video
+```
+
+followed by:
+
+```text
+Could not open webcam at index 0
+```
+
+even though the same tracker executable works correctly when launched directly from Terminal.
+
+When this occurs, verify:
+
+- `NSCameraUsageDescription`
+- Bundle identifier
+- Camera entitlement
+- Application signature
+- TCC camera permissions
