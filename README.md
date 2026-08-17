@@ -177,6 +177,19 @@ for deployment notes and troubleshooting information.
 
 ---
 
+# Documentation
+
+Additional documentation is available in the `docs/` directory:
+
+- `docs/build-tracker-macos.md`
+  Complete tracker build workflow for macOS (Apple Silicon and Intel).
+
+- `docs/macos-camera-permissions.md`
+  Camera permissions, application signing, entitlements, and standalone deployment notes for macOS.
+
+---
+
+
 # Known Issues
 
 ## Startup Time
