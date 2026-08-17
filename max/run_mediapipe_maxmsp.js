@@ -3,8 +3,15 @@ const { spawn, exec } = require("child_process");
 
 let tracker = null;
 
-const TRACKER_PATH =
-"/Volumes/SanDisk_A_2T/DropBox_Cloud/Dropbox/BackUP/PROJET_BackUp/GitHub_Projets/gesturecap2025/dist/doublehand_mp/doublehand_mp";
+const path = require("path");
+
+const TRACKER_PATH = path.join(
+    __dirname,
+    "..",
+    "dist",
+    "doublehand_mp",
+    "doublehand_mp"
+);
 
 Max.addHandler("camera_on", () => {
 

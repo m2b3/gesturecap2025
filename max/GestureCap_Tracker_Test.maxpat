@@ -15,6 +15,57 @@
                 "box": {
                     "bubble": 1,
                     "bubble_bgcolor": [ 0.87841796875, 0.8784179091453552, 0.87841796875, 0.57 ],
+                    "bubble_outlinecolor": [ 0.0196078431372549, 0.0196078431372549, 0.0196078431372549, 1.0 ],
+                    "bubbleside": 3,
+                    "bubbletextmargin": 6,
+                    "fontsize": 12.0,
+                    "id": "obj-21",
+                    "linecount": 4,
+                    "maxclass": "comment",
+                    "numinlets": 1,
+                    "numoutlets": 0,
+                    "patching_rect": [ 675.0, 308.5454514026642, 219.0, 66.0 ],
+                    "presentation_linecount": 5,
+                    "text": "Tracker Launch Mode\n\n0 = Development (Repository)\n1 = Standalone (Application Bundle)",
+                    "textcolor": [ 0.11372549019607843, 0.11372549019607843, 0.11372549019607843, 1.0 ],
+                    "textjustification": 1
+                }
+            },
+            {
+                "box": {
+                    "bubble": 1,
+                    "bubble_bgcolor": [ 0.87841796875, 0.8784179091453552, 0.87841796875, 0.57 ],
+                    "bubble_outlinecolor": [ 0.0196078431372549, 0.0196078431372549, 0.0196078431372549, 1.0 ],
+                    "bubbleside": 3,
+                    "bubbletextmargin": 6,
+                    "fontsize": 12.0,
+                    "id": "obj-5",
+                    "linecount": 4,
+                    "maxclass": "comment",
+                    "numinlets": 1,
+                    "numoutlets": 0,
+                    "patching_rect": [ 997.8181710243225, 77.0, 203.0, 66.0 ],
+                    "presentation_linecount": 4,
+                    "text": "Shutdown Cleanup\n\nAutomatically stops the tracker\nand releases the camera on exit.",
+                    "textcolor": [ 0.11372549019607843, 0.11372549019607843, 0.11372549019607843, 1.0 ],
+                    "textjustification": 1
+                }
+            },
+            {
+                "box": {
+                    "id": "obj-3",
+                    "maxclass": "newobj",
+                    "numinlets": 1,
+                    "numoutlets": 1,
+                    "outlettype": [ "bang" ],
+                    "patching_rect": [ 1213.6363520622253, 99.0, 63.0, 22.0 ],
+                    "text": "closebang"
+                }
+            },
+            {
+                "box": {
+                    "bubble": 1,
+                    "bubble_bgcolor": [ 0.87841796875, 0.8784179091453552, 0.87841796875, 0.57 ],
                     "bubble_outlinecolor": [ 0.05098036676645279, 0.05098036676645279, 0.05098036676645279, 1.0 ],
                     "bubbleside": 0,
                     "bubbletextmargin": 6,
@@ -24,8 +75,7 @@
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 1458.3254749178886, 1052.2727172374725, 354.0, 262.0 ],
-                    "presentation_linecount": 8,
+                    "patching_rect": [ 1458.3254749178886, 1052.2727172374725, 358.0, 262.0 ],
                     "text": "Live Hand Visualizer\n\nPlease be patient.\nThe preview window may take approximately 30 seconds to open.\n",
                     "textcolor": [ 0.0, 0.0, 0.0, 1.0 ],
                     "textjustification": 1
@@ -45,7 +95,6 @@
                     "numinlets": 1,
                     "numoutlets": 0,
                     "patching_rect": [ 0.0, 0.0, 768.181811, 121.0 ],
-                    "presentation_linecount": 13,
                     "text": "GestureCap Tracker Test\n\nThis patch demonstrates how to launch and control the MediaPipe tracker from Max/MSP.\n\nUse Development mode when running from the GestureCap repository.\n\nUse Standalone mode when running from a compiled Collective or Application.",
                     "textcolor": [ 0.290283203125, 0.290283203125, 0.290283203125, 1.0 ],
                     "textjustification": 1
@@ -65,7 +114,6 @@
                     "numinlets": 1,
                     "numoutlets": 0,
                     "patching_rect": [ 288.63636088371277, 432.40908670425415, 205.0, 39.0 ],
-                    "presentation_linecount": 2,
                     "text": "available devices and device formats",
                     "textcolor": [ 0.11372549019607843, 0.11372549019607843, 0.11372549019607843, 1.0 ],
                     "textjustification": 1
@@ -574,7 +622,7 @@
                     "maxclass": "comment",
                     "numinlets": 1,
                     "numoutlets": 0,
-                    "patching_rect": [ 909.0909004211426, 636.3636302947998, 192.49139785766602, 202.0 ],
+                    "patching_rect": [ 909.0909004211426, 636.3636302947998, 193.0, 202.0 ],
                     "text": "Development Script (Max Patch)\n\nThis script launches the PyInstaller-packaged tracker directly from the GestureCap repository.\n\nUse this version while developing and testing inside Max.\n\nThe tracker executable must be available in the repository folder specified in TRACKER_PATH.",
                     "textcolor": [ 0.290283203125, 0.290283203125, 0.290283203125, 1.0 ],
                     "textjustification": 1
@@ -4539,6 +4587,22 @@
                 "patchline": {
                     "destination": [ "obj-23", 0 ],
                     "source": [ "obj-29", 0 ]
+                }
+            },
+            {
+                "patchline": {
+                    "color": [ 0.9911933541297913, 0.3534833788871765, 0.33381739258766174, 1.0 ],
+                    "destination": [ "obj-18", 0 ],
+                    "order": 0,
+                    "source": [ "obj-3", 0 ]
+                }
+            },
+            {
+                "patchline": {
+                    "color": [ 0.9911933541297913, 0.3534833788871765, 0.33381739258766174, 1.0 ],
+                    "destination": [ "obj-31", 0 ],
+                    "order": 1,
+                    "source": [ "obj-3", 0 ]
                 }
             },
             {
