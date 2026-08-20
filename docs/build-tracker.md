@@ -136,4 +136,35 @@ dist/
 Run the packaged tracker:
 
 ```bash
-./dist/doublehand_mp/doublehand
+./dist/doublehand_mp/doublehand_mp
+```
+
+Expected behavior:
+
+- The webcam opens.
+- MediaPipe detects hand landmarks.
+- The preview window appears.
+- OSC data is sent locally to `127.0.0.1` on port `11111`.
+
+The tracker uses these OSC addresses:
+
+```text
+/hand/left
+/hand/right
+```
+
+In Max/MSP, receive the stream on port `11111` and verify that landmark values arrive while a hand is visible.
+
+---
+
+# Build Output
+
+Keep the complete generated directory:
+
+```text
+dist/doublehand_mp/
+```
+
+Do not copy only the `doublehand_mp` executable. The accompanying `_internal/` directory is required by the PyInstaller build.
+
+For macOS standalone deployment and camera authorization, see [macOS Camera Permissions](macos-camera-permissions.md).
