@@ -1670,8 +1670,8 @@ function drawHandDiagram(hand)
 
     var mirror =
         hand === 0
-        ? 1
-        : -1;
+        ? -1
+        : 1;
 
 
     var scale =

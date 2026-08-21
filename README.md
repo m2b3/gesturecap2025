@@ -18,6 +18,8 @@ Audio, visuals, or other processes
 
 By default, tracking and OSC communication stay on the local machine. Camera frames are processed locally and only landmark data is sent to Max.
 
+![GestureCap OSC demonstration](media/gesture-cap-demo.gif)
+
 ---
 
 ## Why This Repository
@@ -57,6 +59,8 @@ The tracker can display its own OpenCV preview while `mediapipe_handdraw.js` ren
 
 The routing matrix is designed primarily around MediaPipe data.
 
+![GestureCap OSC routing matrix](media/routing-matrix.png)
+
 Primary modes:
 
 - **Hands** — direct access to the 21 landmarks of each hand
@@ -70,11 +74,36 @@ Additional controller modes:
 
 Each mode preserves its own active sources, selections, and mappings.
 
+#### Matrix messages
+
+The matrix accepts the following control messages:
+
+| Message | Behavior |
+| --- | --- |
+| `mode hands` | Selects the Hands mode. Replace `hands` with `clusters`, `wearable`, `gamepad`, or `mouse` to select another mode. |
+| `clear` | Resets LEDs, gates, selections, and mappings for the current mode. Colors are preserved. |
+| `clearall` | Resets states and mappings for every mode. Colors are preserved. |
+| `clearmappings` | Clears only the mappings for the current mode. Active LEDs, gates, and selections are preserved. |
+| `rightborderactive $1` | Sets the active-border value for the right-hand side. |
+| `leftborderactive $1` | Sets the active-border value for the left-hand side. |
+| `rightborderinactive $1` | Sets the inactive-border value for the right-hand side. |
+| `leftborderinactive $1` | Sets the inactive-border value for the left-hand side. |
+| `rightbgactive $1` | Sets the active-background value for the right-hand side. |
+| `leftbgactive $1` | Sets the active-background value for the left-hand side. |
+| `rightbginactive $1` | Sets the inactive-background value for the right-hand side. |
+| `leftbginactive $1` | Sets the inactive-background value for the left-hand side. |
+| `rightcolor $1` | Sets the right-hand display color value. |
+| `leftcolor $1` | Sets the left-hand display color value. |
+
+In Max message boxes, `$1` is replaced by the value sent to the message.
+
 See [Gesture Routing Matrix](docs/routing-matrix.md) for messages, outputs, colors, and state behavior.
 
 ### Custom Parameter Dials
 
 Twelve reusable JSUI dials process normalized controller data through:
+
+![GestureCap OSC custom parameter dials](media/custom-dials.png)
 
 ```text
 Raw Input
@@ -94,13 +123,11 @@ See [Custom JSUI Dials](docs/custom-dials.md) for messages, outlets, and display
 
 The packaged tracker is launched directly by the Max patch. Python does not need to be installed on the performance machine.
 
-### 1. Download the packaged tracker
+### 1. Download and extract the packaged tracker — required
 
-Download `gesturecap-tracker-macos-arm64.zip` from the [latest GitHub Release](https://github.com/mikaelmolliex/gesturecap-osc/releases/latest).
+The compiled tracker is not stored in the Git repository. Before opening the Max patch, download `gesturecap-tracker-macos-arm64.zip` from the [latest GitHub Release](https://github.com/mikaelmolliex/gesturecap-osc/releases/latest).
 
 This build is currently provided for macOS Apple Silicon (`arm64`).
-
-### 2. Extract the tracker
 
 Extract the archive and place the resulting `doublehand_mp/` folder inside `dist/` at the repository root.
 
@@ -122,20 +149,21 @@ gesturecap-osc/
 
 The complete `_internal/` directory must remain beside the `doublehand_mp` executable. Do not move the executable by itself.
 
-### 3. Open the Max patch
+### 2. Open the Max patch
 
 ```text
 max/GestureCap_Tracker_Test.maxpat
 ```
 
-### 4. Enable the camera/video control
+### 3. Enable the camera/video control
 
 Max launches the packaged tracker. The tracker opens its OpenCV preview and sends MediaPipe landmarks to the visualizer embedded in the Max patch.
 
 The initial launch can take approximately 20–30 seconds while the packaged runtime, MediaPipe, OpenCV and supporting resources load.
-### Tracker path
 
-`max/run_mediapipe_maxmsp.js` resolves the tracker relative to the script:
+### Tracker placement and launcher paths
+
+For the regular Max patch, [`max/run_mediapipe_maxmsp.js`](max/run_mediapipe_maxmsp.js) resolves the tracker relative to the launcher script:
 
 ```javascript
 const TRACKER_PATH = path.join(
@@ -147,7 +175,19 @@ const TRACKER_PATH = path.join(
 );
 ```
 
-If the tracker is moved elsewhere, update this `TRACKER_PATH` block to match its new location.
+The extracted executable must therefore exist at:
+
+```text
+dist/doublehand_mp/doublehand_mp
+```
+
+If the tracker is moved elsewhere, update the `TRACKER_PATH` block in the launcher that you use:
+
+- [`max/run_mediapipe_maxmsp.js`](max/run_mediapipe_maxmsp.js) — regular Max patch; expects the tracker in `dist/doublehand_mp/` at the repository root.
+- [`max/run_mediapipe_maxmsp_project.js`](max/run_mediapipe_maxmsp_project.js) — Max Project; resolves a bundled `tracker/doublehand_mp/` directory relative to the project launcher.
+- [`max/run_mediapipe_standalone.js`](max/run_mediapipe_standalone.js) — standalone application; update the application name or absolute bundle path to match `YourApp.app/Contents/Resources/tracker/doublehand_mp/doublehand_mp`.
+
+In every configuration, keep the complete `_internal/` directory beside the `doublehand_mp` executable.
 
 See [Max/MSP Integration](docs/max-integration.md) for the regular patch, Max Project, and standalone launchers.
 
