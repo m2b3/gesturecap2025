@@ -206,3 +206,6 @@ __marimo__/
 example*
 temp*
 frames*
+
+gesturecap-tracker-macos-arm64.zip
+*.sha256
