@@ -94,7 +94,17 @@ See [Custom JSUI Dials](docs/custom-dials.md) for messages, outlets, and display
 
 The packaged tracker is launched directly by the Max patch. Python does not need to be installed on the performance machine.
 
-### 1. Preserve the project structure
+### 1. Download the packaged tracker
+
+Download `gesturecap-tracker-macos-arm64.zip` from the [latest GitHub Release](https://github.com/mikaelmolliex/gesturecap-osc/releases/latest).
+
+This build is currently provided for macOS Apple Silicon (`arm64`).
+
+### 2. Extract the tracker
+
+Extract the archive and place the resulting `doublehand_mp/` folder inside `dist/` at the repository root.
+
+The final project structure must be:
 
 ```text
 gesturecap-osc/
@@ -110,20 +120,19 @@ gesturecap-osc/
     └── custom.dial.v9.js
 ```
 
-The complete `_internal/` directory must stay beside the `doublehand_mp` executable.
+The complete `_internal/` directory must remain beside the `doublehand_mp` executable. Do not move the executable by itself.
 
-### 2. Open the Max patch
+### 3. Open the Max patch
 
 ```text
 max/GestureCap_Tracker_Test.maxpat
 ```
 
-### 3. Enable the camera/video control
+### 4. Enable the camera/video control
 
 Max launches the packaged tracker. The tracker opens its OpenCV preview and sends MediaPipe landmarks to the visualizer embedded in the Max patch.
 
-The initial launch can take approximately 20–30 seconds while the packaged Python runtime, MediaPipe, OpenCV, and supporting resources load.
-
+The initial launch can take approximately 20–30 seconds while the packaged runtime, MediaPipe, OpenCV and supporting resources load.
 ### Tracker path
 
 `max/run_mediapipe_maxmsp.js` resolves the tracker relative to the script:
