@@ -22,6 +22,31 @@ By default, tracking and OSC communication stay on the local machine. Camera fra
 
 ---
 
+## Quick Start — Complete Project, No Python Installation
+
+The recommended download is the ready-to-run macOS Apple Silicon package:
+
+```text
+gesturecap-osc-v0.1.0-macos-arm64-complete.zip
+```
+
+1. Download the complete package from the [latest GitHub Release](https://github.com/mikaelmolliex/gesturecap-osc/releases/latest).
+2. Unzip it.
+3. Open `max/GestureCap_Tracker_Test.maxpat` in Max/MSP.
+4. Enable the camera/video control.
+
+That is all. The complete release already contains the signed and notarized tracker at:
+
+```text
+dist/doublehand_mp/doublehand_mp
+```
+
+Python is not required on the performance machine, and no tracker folder needs to be moved. The first launch can take approximately 20–30 seconds while MediaPipe, OpenCV, and the packaged runtime load.
+
+This ready-to-run build currently supports macOS Apple Silicon (`arm64`). If you only need the tracker for another Max Project, standalone, or OSC application, use the smaller tracker-only asset described in [Tracker-Only Download and Manual Integration](#tracker-only-download-and-manual-integration).
+
+---
+
 ## Why This Repository
 
 The main goal is to make a MediaPipe-based gesture pipeline portable and practical inside Max/MSP applications:
@@ -119,17 +144,47 @@ See [Custom JSUI Dials](docs/custom-dials.md) for messages, outlets, and display
 
 ---
 
-## Quick Start — Max/MSP, No Python Installation
+## Tracker-Only Download and Manual Integration
 
-The packaged tracker is launched directly by the Max patch. Python does not need to be installed on the performance machine.
+Use this section if you cloned a version of the repository without `dist/`, or if you want to embed the tracker in your own Max Project, standalone, or OSC application. Users of the complete ready-to-run package can skip this section.
 
-### 1. Download and extract the packaged tracker — required
+### 1. Download the tracker-only asset
 
-The compiled tracker is not stored in the Git repository. Before opening the Max patch, download `gesturecap-tracker-macos-arm64.zip` from the [latest GitHub Release](https://github.com/mikaelmolliex/gesturecap-osc/releases/latest).
+Download the smaller tracker package from the [latest GitHub Release](https://github.com/mikaelmolliex/gesturecap-osc/releases/latest):
 
-This build is currently provided for macOS Apple Silicon (`arm64`).
+```text
+gesturecap-tracker-macos-arm64.zip
+```
 
-Extract the archive and place the resulting `doublehand_mp/` folder inside `dist/` at the repository root.
+To use it with this repository:
+
+1. Unzip the archive.
+2. Create `dist/` at the repository root if it is not already present.
+3. Move the extracted `doublehand_mp/` folder into `dist/`.
+
+This installation step is mandatory. The Max launcher cannot start MediaPipe until the executable exists at `dist/doublehand_mp/doublehand_mp`.
+
+The current build is provided for macOS Apple Silicon (`arm64`). It is signed with an Apple Developer ID and notarized by Apple for distribution outside the Mac App Store.
+
+The optional checksum asset is:
+
+```text
+gesturecap-tracker-macos-arm64.zip.sha256
+```
+
+To verify the download, place the ZIP and checksum file together, then run:
+
+```bash
+shasum -a 256 -c gesturecap-tracker-macos-arm64.zip.sha256
+```
+
+The expected result is:
+
+```text
+gesturecap-tracker-macos-arm64.zip: OK
+```
+
+The checksum verification is recommended but is not required to run the tracker. The archive contains `doublehand_mp/`; it does not create the parent `dist/` directory for you.
 
 The final project structure must be:
 
@@ -149,7 +204,9 @@ gesturecap-osc/
 
 The complete `_internal/` directory must remain beside the `doublehand_mp` executable. Do not move the executable by itself.
 
-### 2. Open the Max patch
+On first launch, macOS may display its normal confirmation and camera-permission dialogs. If Gatekeeper reports that it cannot verify the tracker, confirm that you downloaded the current Release asset and that the SHA-256 verification succeeds. Do not replace the release signature with an ad-hoc signature.
+
+### 2. Test with the included Max patch
 
 ```text
 max/GestureCap_Tracker_Test.maxpat
@@ -195,14 +252,24 @@ See [Max/MSP Integration](docs/max-integration.md) for the regular patch, Max Pr
 
 ## Packaged Tracker and `dist/`
 
-The local `dist/` directory contains the complete PyInstaller tracker. It is a generated binary package and is intentionally kept outside normal Git tracking.
+For the `v0.1.0` ready-to-run milestone, `dist/doublehand_mp/` is included in the release commit so the complete project works immediately after extraction. Other generated `dist/` outputs and local backups remain ignored.
 
-Recommended distribution:
+The same signed and notarized tracker is also distributed separately as `gesturecap-tracker-macos-arm64.zip` for users who do not need the complete project.
 
-1. Compress `dist/doublehand_mp/` as `gesturecap-tracker-macos-arm64.zip`.
-2. Attach the archive to a GitHub Release.
-3. Ask users to extract it into the repository root so that `dist/doublehand_mp/` is restored.
-4. Keep `dist/` in `.gitignore` to avoid adding the 217 MB generated bundle to every Git clone.
+Release workflow:
+
+1. Build `doublehand_mp/` from the committed PyInstaller specification.
+2. Sign the release build with a Developer ID Application identity and hardened runtime.
+3. Verify the executable and test the complete generated directory.
+4. Compress the signed `doublehand_mp/` directory as `gesturecap-tracker-macos-arm64.zip`.
+5. Submit that exact archive to Apple's notary service.
+6. Generate and verify `gesturecap-tracker-macos-arm64.zip.sha256`.
+7. Attach the accepted archive and checksum to a GitHub Release.
+8. Keep standalone ZIP and checksum assets outside Git history.
+
+The unpacked tracker is approximately 217 MB. The release archive is smaller because it is compressed.
+
+Future development versions may stop tracking `dist/` again. The `v0.1.0` tag will continue to preserve this ready-to-run milestone.
 
 The current packaged tracker is built for macOS Apple Silicon (`arm64`). Intel macOS and Windows require separate builds and release assets.
 
@@ -240,7 +307,7 @@ YourApp.app
                 └── _internal/
 ```
 
-Camera access may require `NSCameraUsageDescription`, a camera entitlement, application signing, and a TCC permission reset during development.
+Camera access may require `NSCameraUsageDescription`, a camera entitlement, application signing, and a TCC permission reset during development. Embedding the already signed tracker does not sign or notarize the surrounding Max standalone application: the complete `.app` and its final distribution archive must follow their own Developer ID signing and notarization workflow.
 
 See [macOS Camera Permissions](docs/macos-camera-permissions.md) for the complete workflow.
 

@@ -25,8 +25,8 @@ After install, restart your terminal (or `source ~/.bashrc` / `source ~/.zshrc`)
 ## 2. Clone the repo
 
 ```bash
-git clone https://github.com/m2b3/gesturecap2025.git
-cd gesturecap2025
+git clone https://github.com/mikaelmolliex/gesturecap-osc.git
+cd gesturecap-osc
 ```
 
 ---
@@ -57,7 +57,7 @@ curl -L -o models/hand_landmarker.task \
 ## 5. Set your OSC target
 
 By default the script sends OSC to `127.0.0.1:11111` — the same machine, port 11111.  
-If your audio software (Pure Data, Max/MSP, SuperCollider, etc.) listens on a different address or port, edit the two lines near the top of [doublehand_mp.py](doublehand_mp.py):
+If your audio software (Pure Data, Max/MSP, SuperCollider, etc.) listens on a different address or port, edit the two lines near the top of [doublehand_mp.py](../doublehand_mp.py):
 
 ```python
 OSC_IP   = "127.0.0.1"   # ← change to your machine's IP if needed
@@ -79,31 +79,35 @@ Press **`q`** in the preview window to quit cleanly.
 
 ## What gets sent
 
-For every frame, each visible hand emits **63 OSC messages** — one per axis per MediaPipe joint, each carrying a single float:
+For every processed frame, each visible hand emits **one OSC message** containing 63 float values:
 
+```text
+/hand/left  <63 float arguments>
+/hand/right <63 float arguments>
 ```
-/left_wrist_x              <float>   # 0.0 = left edge,  1.0 = right edge
-/left_wrist_y              <float>   # 0.0 = top edge,   1.0 = bottom edge
-/left_wrist_z              <float>   # depth, relative to wrist (≈0 at wrist)
-/left_thumb_cmc_x          <float>
-/left_thumb_cmc_y          <float>
-/left_thumb_cmc_z          <float>
+
+The payload contains X, Y, and Z for each of the 21 MediaPipe landmarks, in this order:
+
+```text
+wrist_x, wrist_y, wrist_z,
+thumb_cmc_x, thumb_cmc_y, thumb_cmc_z,
+thumb_mcp_x, thumb_mcp_y, thumb_mcp_z,
 ...
-/right_pinky_tip_z         <float>
+pinky_tip_x, pinky_tip_y, pinky_tip_z
 ```
 
-The 21 joint names follow MediaPipe's `HandLandmark` enum (lowercased):
+The complete landmark order is:
 
-```
+```text
 wrist,
 thumb_cmc, thumb_mcp, thumb_ip, thumb_tip,
-index_finger_mcp,  index_finger_pip,  index_finger_dip,  index_finger_tip,
+index_finger_mcp, index_finger_pip, index_finger_dip, index_finger_tip,
 middle_finger_mcp, middle_finger_pip, middle_finger_dip, middle_finger_tip,
-ring_finger_mcp,   ring_finger_pip,   ring_finger_dip,   ring_finger_tip,
-pinky_mcp,         pinky_pip,         pinky_dip,         pinky_tip
+ring_finger_mcp, ring_finger_pip, ring_finger_dip, ring_finger_tip,
+pinky_mcp, pinky_pip, pinky_dip, pinky_tip
 ```
 
-So with both hands in frame you get up to **126 messages per frame**. Build your own mapping (frequency, volume, filter cutoff, anything) in your downstream patch by subscribing to whichever addresses you care about.
+With both hands visible, the tracker therefore sends up to two OSC messages per processed frame, carrying 126 float values in total.
 
 ---
 
@@ -111,24 +115,26 @@ So with both hands in frame you get up to **126 messages per frame**. Build your
 
 All values arrive as floats:
 
-- **`x`** — horizontal position, `0.0` (left edge) → `1.0` (right edge)
-- **`y`** — vertical position, `0.0` (top edge) → `1.0` (bottom edge)
-- **`z`** — depth relative to the wrist; negative = toward the camera, positive = away. Magnitudes are small (roughly `-0.2` to `+0.2`) and not metric.
+- **`x`** — horizontal position in the mirrored preview, `0.0` at the left edge and `1.0` at the right edge
+- **`y`** — vertical position after inversion, `0.0` at the bottom and `1.0` at the top
+- **`z`** — inverted relative depth, approximately `0` at the wrist; values are not metric
 
-A few starter ideas you can wire up in Pd/Max/SC:
+In Max/MSP, first route `/hand/right` and `/hand/left`, then unpack the 63-value payload into X/Y/Z triplets. The included demonstration patch already performs this step.
 
-- **Pitch from horizontal index tip:** read `/right_index_finger_tip_x`, scale `0–1` to your desired frequency range (e.g. `200 + x*1800` for 200–2000 Hz).
-- **Volume from vertical:** read `/right_index_finger_tip_y` and invert (`1 - y`) so raising your hand makes it louder.
-- **Pinch as gate:** subscribe to both `/right_thumb_tip_x,y` and `/right_index_finger_tip_x,y`, compute distance in your patch, gate the synth when below a threshold.
-- **Two-hand control:** use left-hand joints for one synth parameter and right-hand joints for another — they're independent streams.
+A few starter mappings:
 
-If you want to do the mapping *in Python instead of in the patch*, the place to add it is inside the `consumer()` function in [doublehand_mp.py](doublehand_mp.py), right where the per-landmark `client.send_message(...)` calls happen — replace or supplement them with whatever derived value you want to send.
+- map the right index-tip X value to frequency
+- map its Y value to volume
+- calculate the distance between thumb tip and index tip for a pinch gate
+- use the left and right hand payloads as independent controllers
+
+If you want to calculate derived gestures in Python, the relevant section is the `consumer()` function in [doublehand_mp.py](../doublehand_mp.py), where the 63-value list is assembled and sent through `client.send_message(...)`.
 
 ---
 
 ## Toggling the preview window
 
-At the top of [doublehand_mp.py](doublehand_mp.py):
+At the top of [doublehand_mp.py](../doublehand_mp.py):
 
 ```python
 SHOW_PREVIEW = True   # set to False to hide the camera window

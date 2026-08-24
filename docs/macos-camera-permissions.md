@@ -37,6 +37,13 @@ NSCameraUsageDescription
 
 but the application bundle has not been signed with the appropriate camera entitlement.
 
+Two different macOS protections can produce different failures:
+
+- A **Gatekeeper** dialog such as “Apple could not verify” or “Not Opened” appears before the tracker runs. It concerns Developer ID signing and notarization, not camera permission.
+- An **OpenCV camera error** appears after the process starts. It normally concerns `NSCameraUsageDescription`, the camera entitlement, or the current TCC permission state.
+
+The tracker distributed in the GitHub Release is signed with a Developer ID and notarized by Apple. Replacing that signature with an ad-hoc signature removes its public-distribution identity.
+
 ---
 
 # Camera Entitlement
@@ -216,6 +223,49 @@ does not replace:
 - App Store distribution requirements
 
 For public distribution, standard Apple code-signing and notarization workflows should be used.
+
+---
+
+# Public Standalone Distribution
+
+The signature and notarization of `doublehand_mp` cover the tracker release only. They do not automatically cover a Max standalone application that embeds it.
+
+Use this order for a public standalone:
+
+```text
+Start with the signed and notarized tracker
+        ↓
+Embed the complete doublehand_mp/ directory
+        ↓
+Set NSCameraUsageDescription
+        ↓
+Apply the camera entitlement
+        ↓
+Sign nested executable components
+        ↓
+Sign the complete YourApp.app with Developer ID
+        ↓
+Verify the final application
+        ↓
+Package and notarize the final ZIP, DMG, or installer
+```
+
+For production, sign nested code explicitly from the inside out and sign the outer application last. Do not use the local ad-hoc command as the public release signature.
+
+A simplified outer-app signing command looks like:
+
+```bash
+codesign --force \
+  --options runtime \
+  --timestamp \
+  --entitlements entitlements.plist \
+  --sign "$GESTURECAP_CODESIGN_IDENTITY" \
+  /Applications/YourApp.app
+```
+
+The exact nested signing order depends on the frameworks, externals, and executables included by the Max standalone build. Verify the completed application before notarizing its final distribution archive.
+
+See Apple's current [notarization documentation](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution) for the public distribution requirements.
 
 ---
 
