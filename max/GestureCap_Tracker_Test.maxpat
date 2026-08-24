@@ -9,8 +9,21 @@
             "modernui": 1
         },
         "classnamespace": "box",
-        "rect": [ 224.0, 105.0, 1059.0, 817.0 ],
+        "rect": [ 34.0, 95.0, 1444.0, 853.0 ],
+        "openinpresentation": 1,
         "boxes": [
+            {
+                "box": {
+                    "id": "obj-33",
+                    "maxclass": "newobj",
+                    "numinlets": 1,
+                    "numoutlets": 2,
+                    "outlettype": [ "", "" ],
+                    "patching_rect": [ 136.0, 816.0, 67.0, 22.0 ],
+                    "save": [ "#N", "thispatcher", ";", "#Q", "end", ";" ],
+                    "text": "thispatcher"
+                }
+            },
             {
                 "box": {
                     "bubble": 1,
@@ -74,7 +87,7 @@
                     "outlettype": [ "" ],
                     "patching_rect": [ 432.96705412864685, 943.956090092659, 70.0, 31.0 ],
                     "presentation": 1,
-                    "presentation_rect": [ 493.84620094299316, 264.6154098510742, 70.0, 31.0 ],
+                    "presentation_rect": [ 175.7575602531433, 0.0, 70.0, 31.0 ],
                     "text": "store 3"
                 }
             },
@@ -88,7 +101,7 @@
                     "outlettype": [ "" ],
                     "patching_rect": [ 550.6173279285431, 957.33336186409, 73.0, 31.0 ],
                     "presentation": 1,
-                    "presentation_rect": [ 1706.1540088653564, 264.6154098510742, 73.0, 31.0 ],
+                    "presentation_rect": [ 1374.0, 0.0, 73.0, 31.0 ],
                     "text": "recall 3"
                 }
             },
@@ -102,7 +115,7 @@
                     "outlettype": [ "" ],
                     "patching_rect": [ 554.9450820684433, 924.7099279165268, 73.0, 31.0 ],
                     "presentation": 1,
-                    "presentation_rect": [ 1615.3847694396973, 264.6154098510742, 73.0, 31.0 ],
+                    "presentation_rect": [ 1283.0, 0.0, 73.0, 31.0 ],
                     "text": "recall 2"
                 }
             },
@@ -116,7 +129,7 @@
                     "outlettype": [ "" ],
                     "patching_rect": [ 550.6173279285431, 895.0617998838425, 73.0, 31.0 ],
                     "presentation": 1,
-                    "presentation_rect": [ 1532.3078384399414, 264.6154098510742, 73.0, 31.0 ],
+                    "presentation_rect": [ 1202.0, 0.0, 73.0, 31.0 ],
                     "text": "recall 1"
                 }
             },
@@ -131,7 +144,7 @@
                     "outlettype": [ "" ],
                     "patching_rect": [ 410.9890310764313, 912.0879566669464, 73.0, 31.0 ],
                     "presentation": 1,
-                    "presentation_rect": [ 404.61542320251465, 264.6154098510742, 73.0, 31.0 ],
+                    "presentation_rect": [ 86.36362874507904, 0.0, 73.0, 31.0 ],
                     "text": "store 2"
                 }
             },
@@ -146,7 +159,7 @@
                     "outlettype": [ "" ],
                     "patching_rect": [ 395.46915996074677, 885.7099279165268, 73.0, 31.0 ],
                     "presentation": 1,
-                    "presentation_rect": [ 312.3077220916748, 264.6154098510742, 73.0, 31.0 ],
+                    "presentation_rect": [ 0.0, 0.0, 73.0, 31.0 ],
                     "text": "store 1"
                 }
             },
@@ -202,7 +215,7 @@
                     "patching_rect": [ 1484.0908949375153, 28.571428298950195, 277.3809497356415, 129.7619035243988 ],
                     "pictures": [ "video-camera-off.svg", "video-camera.svg" ],
                     "presentation": 1,
-                    "presentation_rect": [ 1200.0, 410.9375, 47.25, 35.26033341884613 ],
+                    "presentation_rect": [ 897.3684124946594, 149.99999856948853, 47.25, 35.26033341884613 ],
                     "remapsvgcolors": 1,
                     "rounded": 14.0,
                     "saved_attribute_attributes": {
@@ -4835,7 +4848,7 @@
                     },
                     "patching_rect": [ 381.83769577741623, 1925.8064653873444, 1490.6111814379692, 657.1428728103638 ],
                     "presentation": 1,
-                    "presentation_rect": [ 301.53849029541016, 812.3077697753906, 1490.6111814379692, 657.1428728103638 ],
+                    "presentation_rect": [ 0.0, 549.9999947547913, 1490.6111814379692, 657.1428728103638 ],
                     "varname": "multi-dial-panel",
                     "viewvisibility": 1
                 }
@@ -4972,7 +4985,7 @@
                     },
                     "patching_rect": [ 1462.857177734375, 580.0000138282776, 441.6666498184204, 308.3333215713501 ],
                     "presentation": 1,
-                    "presentation_rect": [ 833.8462333679199, 401.5384998321533, 424.0, 310.0 ],
+                    "presentation_rect": [ 531.5789422988892, 139.4736828804016, 424.0, 310.0 ],
                     "varname": "bpatcher_HandsLandmarker",
                     "viewvisibility": 1
                 }
@@ -5100,6 +5113,7 @@
                         },
                         "classnamespace": "box",
                         "rect": [ 34.0, 95.0, 947.0, 853.0 ],
+                        "openinpresentation": 1,
                         "gridsize": [ 4.0, 4.0 ],
                         "lefttoolbarpinned": 1,
                         "toptoolbarpinned": 1,
@@ -31410,7 +31424,7 @@
                     },
                     "patching_rect": [ 385.0635022521019, 1274.1935575008392, 1490.3254749178886, 502.0 ],
                     "presentation": 1,
-                    "presentation_rect": [ 301.53849029541016, 306.15387535095215, 1490.325475, 502.0 ],
+                    "presentation_rect": [ 0.0, 44.736841678619385, 1490.325475, 502.0 ],
                     "varname": "routing-matrix",
                     "viewvisibility": 1
                 }
