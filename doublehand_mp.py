@@ -40,7 +40,16 @@ FRAME_DTYPE = np.uint8
 OSC_IP   = "127.0.0.1"
 OSC_PORT = 11111
 
-SHOW_PREVIEW = True   # set to False to disable the landmark preview window
+SHOW_PREVIEW = True  # set to False to disable the landmark preview window
+
+
+# ==================================================
+# MIKAEL MODIFICATION
+# Camera mirroring (for Max UI testing)
+# Set FLIP to True to enable
+# ==================================================
+
+FLIP = True
 
 
 # ── MediaPipe hand joint names (index → name) ────────────────────────────────
@@ -55,21 +64,18 @@ JOINT_NAMES = [
     "pinky_mcp",        "pinky_pip",        "pinky_dip",        "pinky_tip",
 ]
 
-
-# ── Drawing helpers ───────────────────────────────────────────────────────────
-# MediaPipe hand connections (pairs of landmark indices)
 _HAND_CONNECTIONS = [
-    (0,1),(1,2),(2,3),(3,4),         # thumb
-    (0,5),(5,6),(6,7),(7,8),         # index
-    (0,9),(9,10),(10,11),(11,12),    # middle
-    (0,13),(13,14),(14,15),(15,16),  # ring
-    (0,17),(17,18),(18,19),(19,20),  # pinky
-    (5,9),(9,13),(13,17),            # palm
+    (0,1),(1,2),(2,3),(3,4),
+    (0,5),(5,6),(6,7),(7,8),
+    (0,9),(9,10),(10,11),(11,12),
+    (0,13),(13,14),(14,15),(15,16),
+    (0,17),(17,18),(18,19),(19,20),
+    (5,9),(9,13),(13,17),
 ]
 
 _COLORS = {
-    "left":  (  0, 200,   0),   # green
-    "right": (200,   0, 200),   # purple
+    "left":  (2, 150, 225),      # or / ambre
+    "right": (226, 107, 93),     # bleu-violet approché
 }
 
 
@@ -94,6 +100,8 @@ def draw_hand(frame, landmarks, label):
 # ── Producer ──────────────────────────────────────────────────────────────────
 def producer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
              t_read_total_v, t_frameacq_v, t_getts_v, t_frameconv_v):
+
+    print(f"PRODUCER START {time.perf_counter():.3f}")
 
     cam  = WebcamInput(width=FRAME_SHAPE[1], height=FRAME_SHAPE[0])
     shm0 = shared_memory.SharedMemory(name=shm_name0)
@@ -143,11 +151,25 @@ def producer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
 def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
              t_read_total_v, t_frameacq_v, t_getts_v, t_frameconv_v):
 
-    client   = udp_client.SimpleUDPClient(OSC_IP, OSC_PORT)
-    detector = HandPoseDetector(n_hands=2)
+    print(f"CONSUMER START {time.perf_counter():.3f}")
+
+    client = udp_client.SimpleUDPClient(OSC_IP, OSC_PORT)
+
+    print("CREATING HANDPOSEDETECTOR")
+
+    t0 = time.perf_counter()
+
+    detector = HandPoseDetector(n_hands=2, device="cpu")
+
+    print(
+        f"HANDPOSEDETECTOR READY IN {(time.perf_counter() - t0) * 1000:.0f} ms"
+    )
+
+    print("HandPoseDetector initialisé (CPU)")
 
     shm0 = shared_memory.SharedMemory(name=shm_name0)
     shm1 = shared_memory.SharedMemory(name=shm_name1)
+
     buf0 = np.ndarray(FRAME_SHAPE, dtype=FRAME_DTYPE, buffer=shm0.buf)
     buf1 = np.ndarray(FRAME_SHAPE, dtype=FRAME_DTYPE, buffer=shm1.buf)
 
@@ -158,32 +180,77 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
     try:
         while not stop_event.is_set():
             read_idx = cur_idx.value
-            frame    = buf0.copy() if read_idx == 0 else buf1.copy()
+            frame = buf0.copy() if read_idx == 0 else buf1.copy()
+
+            # ==================================================
+            # MIKAEL MODIFICATION
+            # Apply horizontal flip if enabled
+            # Set FLIP = True to mirror the camera (like webcam apps)
+            if FLIP:
+                frame = cv2.flip(frame, 1)
+
 
             hands = detector.detect_hand_pose(frame)
 
             if hands:
                 for hand in hands:
-                    label = hand.get("label", "").lower()
+                    raw_label = hand.get("label", "").lower()
+
+                    # ==================================================
+                    # MIKAEL MODIFICATION
+                    # Adjust hand labels when camera is mirrored (FLIP)
+                    # This ensures OSC output matches user perspective
+                    # ==================================================
+                    if FLIP:
+                        label = "right" if raw_label == "left" else "left"
+                    else:
+                        label = raw_label
+
                     if label not in ("left", "right"):
                         continue
 
                     landmarks = hand["landmarks"].landmark
-                    for i, name in enumerate(JOINT_NAMES):
-                        lm = landmarks[i]
-                        client.send_message(f"/{label}_{name}_x", float(lm.x))
-                        client.send_message(f"/{label}_{name}_y", float(lm.y))
-                        client.send_message(f"/{label}_{name}_z", float(lm.z))
+                    values = []
+
+                    # ==================================================
+                    # MIKAEL MODIFICATION
+                    for lm in landmarks:
+                        # horizontal axis
+                        x = lm.x
+
+                        # vertical axis
+                        y = 1 - lm.y
+                        # 0 = bottom, 1 = top
+
+                        # depth (unchanged for now)
+                        z = -lm.z  # invert depth for more intuitive positive range
+
+                        values.extend([x, y, z])
+
+                    client.send_message(f"/hand/{label}", values)
 
             if SHOW_PREVIEW:
-                preview = frame.copy()
+                preview = np.zeros_like(frame)
+
                 if hands:
                     for hand in hands:
                         label = hand.get("label", "").lower()
+
+                        if FLIP:
+                            if label == "left":
+                                label = "right"
+                            elif label == "right":
+                                label = "left"
+
                         if label:
-                            draw_hand(preview, hand["landmarks"].landmark, label)
+                            draw_hand(
+                                preview,
+                                hand["landmarks"].landmark,
+                                label
+                            )
 
                 cv2.imshow("doublehand_mp", preview)
+
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     stop_event.set()
                     break
@@ -201,7 +268,11 @@ def consumer(shm_name0, shm_name1, cur_idx, stop_event, ts_value,
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    mp.set_start_method("forkserver", force=True)
+
+    print(f"MAIN START {time.perf_counter():.3f}")
+
+    mp.freeze_support()
+    mp.set_start_method("spawn", force=True)
 
     size = int(np.prod(FRAME_SHAPE) * np.dtype(FRAME_DTYPE).itemsize)
     shm0 = shared_memory.SharedMemory(create=True, size=size)

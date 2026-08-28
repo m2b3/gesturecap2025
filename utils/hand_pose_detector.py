@@ -1,13 +1,14 @@
 import cv2
+import sys
+from pathlib import Path
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 from typing import List
-
 from mediapipe.tasks.python.components.containers import landmark as landmark_module
 
-from mediapipe.framework.formats import landmark_pb2
+
 
 def convert_to_landmark_list(normalized_landmarks: List[landmark_module.NormalizedLandmark]) -> landmark_pb2.NormalizedLandmarkList:
     landmark_list = landmark_pb2.NormalizedLandmarkList()
@@ -24,27 +25,30 @@ class TempHandLandmarks:
         self.landmark = landmark_list
 
 class HandPoseDetector:
-    def __init__(self, n_hands=1, device: str = 'gpu'):
-        """
-        Initializes the HandLandmarker.
+    def __init__(self, n_hands=1, device: str = "cpu"):
 
+        # Ancienne API MediaPipe (non utilisée)
+        # self.mp_hands = mp.solutions.hands
+        # self.mp_drawing = mp.solutions.drawing_utils
 
-        Parameters:
-        ---
-        n_hands: int, default=2
-            The maximum number of hands to detect in each frame
+        if getattr(sys, "frozen", False):
+            model_path = Path(sys._MEIPASS) / "models" / "hand_landmarker.task"
+        else:
+            model_path = (
+                Path(__file__).resolve().parent.parent
+                / "models"
+                / "hand_landmarker.task"
+            )
 
-        device: str, default = 'cpu'
-            The device to run the model on. Choose between 'cpu' and 'gpu'.
-        """
-        self.mp_hands = mp.solutions.hands
-        self.mp_drawing = mp.solutions.drawing_utils
         base_options = python.BaseOptions(
-            model_asset_path='models/hand_landmarker.task',  # You'll need to download this model
-            delegate=python.BaseOptions.Delegate.GPU if device == 'gpu' else python.BaseOptions.Delegate.CPU
-            # delegate=python.BaseOptions.Delegate.GPU
-            # delegate=python.BaseOptions.Delegate.CPU
+            model_asset_path=str(model_path),
+            delegate=(
+                python.BaseOptions.Delegate.GPU
+                if device == "gpu"
+                else python.BaseOptions.Delegate.CPU
+            ),
         )
+
         options = vision.HandLandmarkerOptions(
             base_options=base_options,
             num_hands=n_hands,
@@ -52,6 +56,7 @@ class HandPoseDetector:
             min_hand_presence_confidence=0.5,
             min_tracking_confidence=0.5,
         )
+
         self.hands = vision.HandLandmarker.create_from_options(options)
 
     def detect_hand_pose(self, image): # image is pass by reference, any operations done to the frame inside this method will be reflected in method call origin.
@@ -87,6 +92,15 @@ class HandPoseDetector:
 def main():
     # Initialize the hand pose detector
     hand_pose_detector = HandPoseDetector()
+    print("Creating HandPoseDetector...")
+
+    t0 = time.perf_counter()
+
+    detector = HandPoseDetector(n_hands=2, device="cpu")
+
+    print(
+        f"HandPoseDetector ready in {(time.perf_counter() - t0) * 1000:.0f} ms"
+    )
 
     # Open a video capture stream (you can replace this with your own image or video input)
     cap = cv2.VideoCapture(1)

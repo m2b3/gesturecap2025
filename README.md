@@ -1,262 +1,421 @@
+# GestureCap OSC
 
-# GestureCap: Google Summer of Code 2025
+Run MediaPipe locally, route gesture data in Max/MSP, and control audio, visual, or other parameters.
 
-GestureCap is a real-time system that uses computer vision and sound synthesis to turn hand gestures into sound controls. It lets users create and shape sounds interactively through their hand movements.
+GestureCap OSC packages the MediaPipe tracker so it can run locally without sending camera data to a cloud service. The tracker can be launched directly from Max/MSP, embedded in a Max Project, or included in a standalone application.
 
-## Introduction
+The repository connects three main stages:
 
-This year, our work on GestureCap focused on improving responsiveness and accuracy across the system. A major part of the effort went into precise latency measurement, since in HCI systems latency defines the gap between a user’s intended action and the system’s audio or visual response. To measure this, we built a setup using a Teensy microcontroller that directly monitors the audio signal through analog input. This allows us to capture the delay between a hand gesture making contact with a surface and the resulting sound output. The latency is measured from two timestamps on a shared clock based on electrical signals that are directly/indirectly triggered at the same time as the hand gesture and audio output.
-
-We also reworked the GestureCap pipeline by moving from a multithreaded to a multiprocessing approach, giving more efficient use of system resources and reducing processing delays. 
-
-In addition, we introduced a calibration system for real-time trigger detection, which ensures accurate and consistent measurements across different test runs. With these optimizations, GestureCap now delivers faster and more reliable gesture-to-sound interaction, especially when paired with a high FPS camera.
-
-
-
-## Contributions
-
-### Latency Measurement system
-
-This year, we built a new latency measurement setup to get more accurate and reliable results. The Teensy 4.1 directly timestamps both the trigger event (electrical contact) and the audio detection, ensuring that there are no in-between communication delays that could distort the readings.
-
-By monitoring the audio signal either through a direct AUX connection or a microphone input, the system captures the true end-to-end latency from gesture to sound output. This setup removes errors from USB or serial communication timing and gives a clean, consistent measurement.
-
-Combined with the updated multiprocessing pipeline and a calibration system for real-time trigger detection, our latency measurements are now precise and consistent across multiple hardware setups, from high-performance desktops to standard laptops.
-
-### Parallelization
-
-This pipeline sets up a two-process, shared-memory video processing system for low-latency hand-tap detection and OSC triggering. 
-
-The producer process captures frames from a FLIR camera, measures acquisition and conversion times, and writes each frame into one of two pre-allocated shared memory buffers, switching between them to avoid overwriting in-use data. It also updates shared timing values and a timestamp indicating when the frame was captured. 
-
-The consumer process continuously reads the latest available frame from shared memory, runs the hand pose detector, and applies a tap detection algorithm based on pre-loaded calibration parameters. When a valid tap is detected, it sends an OSC trigger message and logs timing metrics (frame age, camera read time breakdown, and detection time) to a CSV file. 
-
-The system uses Python’s multiprocessing shared memory and Value objects for fast, lock-free data transfer, ensuring minimal frame latency between capture and detection. The design allows the camera capture and the pose detection to run in parallel without blocking each other. 
-
-### Calibration System  
-
-We implemented a **real-time calibration system** to make trigger detection both accurate and consistent. The goal is to ensure the system reacts **exactly when the user makes a trigger gesture**, without firing early or with noticeable delay.  
-
-During calibration, the system:  
-1. Records the average vertical position (*y*-coordinate) of the hand landmarks when the hand is resting on the surface.  
-2. Measures the natural pixel noise from Mediapipe’s tracking.  
-3. Sets the detection threshold using the formula: `Threshold = Mean Rest Position + (3 × Standard Deviation)`  
-
-This approach ensures the threshold stays far enough from the resting noise to prevent false positives, while still low enough to trigger instantly when the user’s hand actually makes contact.  
-
-This setup is currently used for **surface trigger detection**, but the same logic can be adapted for other cases, for example, mapping gestures between two points in space for range-based interactions.  
-
-The calibration can be repeated anytime and adapts automatically to changes in camera alignment, lighting, or hand position, keeping detection **accurate and consistent across sessions and hardware setups**.  
-
-## Results
-
-With a high-FPS camera and a good GPU, we are able to achieve a median latency of 13ms.
-
-#### Camera: [Blackfly S BFS-U3-04S2C](https://www.flir.fr/products/blackfly-s-usb3/?vertical=machine+vision&segment=iis)
-
- - This is a 522 FPS USB-3 based camera
- - As this camera has a bunch of configurable parameters, the corresponding wrapper class uses the ones fitting this model the best. Therefore these parameters should be adapted if another model is used.
-
-#### Laptop : ASUS TUF A15, an RTX-4060 based laptop, with 16GB of RAM and Ryzen 9 CPU.
-
-
-## Latency Measurement Instructions
-
-### 1. Software Setup (GPU Configuration)
-
-**Boost GPU clocks before starting experiments:**
-```bash
-sudo nvidia-smi -lgc=3000,3000 && sudo nvidia-smi -lmc 8000,8000
+```text
+Local MediaPipe tracking
+        ↓ OSC — 127.0.0.1:11111
+Gesture routing matrix
+        ↓
+12 custom parameter dials
+        ↓
+Audio, visuals, or other processes
 ```
 
-**Check GPU clocks:**
-```bash
-nvidia-smi -q -d CLOCK
+By default, tracking and OSC communication stay on the local machine. Camera frames are processed locally and only landmark data is sent to Max.
+
+![GestureCap OSC demonstration](media/gesture-cap-demo.gif)
+
+---
+
+## Quick Start — Complete Project, No Python Installation
+
+The recommended download is the ready-to-run macOS Apple Silicon package:
+
+```text
+gesturecap-osc-v0.1.0-macos-arm64-complete.zip
 ```
 
-**Reset GPU clocks after experiment:**
-```bash
-sudo nvidia-smi --reset-memory-clocks && sudo nvidia-smi --reset-gpu-clocks
+1. Download the complete package from the [latest GitHub Release](https://github.com/mikaelmolliex/gesturecap-osc/releases/latest).
+2. Unzip it.
+3. Open `max/GestureCap_Tracker_Test.maxpat` in Max/MSP.
+4. Enable the camera/video control.
+
+That is all. The complete release already contains the signed and notarized tracker at:
+
+```text
+dist/doublehand_mp/doublehand_mp
 ```
 
-**Run scripts with GPU:**
-Use your system's GPU execution command for all main Python scripts. For NVIDIA Optimus systems:
-```bash
-prime-run python latency_mp.py
+Python is not required on the performance machine, and no tracker folder needs to be moved. The first launch can take approximately 20–30 seconds while MediaPipe, OpenCV, and the packaged runtime load.
+
+This ready-to-run build currently supports macOS Apple Silicon (`arm64`). If you only need the tracker for another Max Project, standalone, or OSC application, use the smaller tracker-only asset described in [Tracker-Only Download and Manual Integration](#tracker-only-download-and-manual-integration).
+
+---
+
+## Why This Repository
+
+The main goal is to make a MediaPipe-based gesture pipeline portable and practical inside Max/MSP applications:
+
+- Run hand tracking locally and privately
+- Launch the packaged tracker from Max
+- Embed the tracker in a Max Project or standalone application
+- Visualize MediaPipe landmarks inside Max
+- Route gesture axes to 12 destination parameters
+- Calibrate and shape each parameter with custom JSUI dials
+- Reuse the routing matrix with OSC, USB, or Bluetooth controllers
+
+---
+
+## Main Components
+
+### MediaPipe Tracker
+
+The packaged tracker runs MediaPipe and OpenCV locally. It supports up to two hands with 21 landmarks per hand and sends X, Y, and Z values to:
+
+```text
+/hand/left
+/hand/right
 ```
 
-**Scripts Involved:**
-- `latency_measurement/preview_flircam.py` – camera positioning
-- `latency_measurement/calibration.py` – set reference line and calibration distance
-- `latency_measurement/latency_mp.py` – latency testing
-- `latency_measurement/log_serial.py` – serial logging from Teensy
-- `data_cleanup/join_tables.py` – combine latency logs into a CSV
+Default OSC destination:
 
-### 2. Audio Setup
-
-- Connect AUX cable from your computer to the speaker
-- Place the microphone sensor close to the speaker membrane
-
-### 3. Teensy Setup – Microphone + Speaker Mode
-
-- Connect Teensy pins: GND → Ground, 3V → VCC, A0 → Pin 23 (or whichever analog pin you configure)
-- Confirm selected pin matches the Teensy code
-- Upload the `raw_data_plot` code to the Teensy to check values in silent conditions
-- Set the threshold in `latency.ino` comfortably above the silent baseline level
-- Test the setup by tapping the microphone and observing the readings
-
-### 4. Teensy Setup – Raw AUX Analog Mode
-
-- Use an open-ended AUX wire: Ground terminal → GND on Teensy, Positive terminal → Analog pin (currently Pin 23)
-- Repeat the steps for Teensy code and `raw_data_plot` upload
-- Set threshold in `latency.ino` comfortably above silent readings
-
-### 5. Threshold Configuration
-
-**Setting Limits in latency.ino:**
-- Lower limit: theoretical minimum latency minus a few ms for margin
-- Upper limit: theoretical maximum latency plus a few ms
-- This prevents spurious readings outside expected bounds
-
-**Current Reference Values:**
-- Raw analog AUX: threshold = 30
-- Microphone + speaker: threshold = 80
-
-*Note: These values were determined by observing silent readings with `raw_data_plot`. Adjust if you notice false positives or missed taps.*
-
-### 6. Physical Setup – Hand Tap Sensor
-
-- Paste aluminum foil at the edge of a flat surface
-- Connect any Teensy GND pin to the foil using an alligator clip/wire
-- Connect a wire to the buttonPin (currently Pin 2)
-- Attach this wire to the side of your left pinky finger, minimizing obstruction of the back of your hand
-- Connect the Teensy to your computer via USB
-
-### 7. Camera Setup
-
-- Connect the FLIR camera to your computer
-- Run camera positioning script:
-```bash
-prime-run python preview_flircam.py  # or your GPU command
-```
-- Adjust camera so foil edge is parallel to the reference line
-- Press 'q' to close
-
-### 8. Calibration
-
-```bash
-prime-run python calibration.py  # or your GPU command
+```text
+127.0.0.1:11111
 ```
 
-- Click twice along the foil edge with maximum precision
-- Keep left hand vertical on surface with pinky resting sideways on foil
-- Script measures distance between Avg(y-coord(17 to 20)) and reference line for 1 second
-- Ensure right hand is not visible during measurement
+The tracker can display its own OpenCV preview while `mediapipe_handdraw.js` renders the landmark data inside Max/MSP.
 
-### 9. Calibration Verification
+### Gesture Routing Matrix
 
-```bash
-prime-run python latency_mp.py  # or your GPU command
+The routing matrix is designed primarily around MediaPipe data.
+
+![GestureCap OSC routing matrix](media/routing-matrix.png)
+
+Primary modes:
+
+- **Hands** — direct access to the 21 landmarks of each hand
+- **Clusters** — grouped MediaPipe sources for higher-level gesture control
+
+Additional controller modes:
+
+- **Wearable** — OSC data from wearable controllers
+- **Gamepad** — USB or Bluetooth exploration and parameter control
+- **Mouse** — manual exploration, testing, and parameter control
+
+Each mode preserves its own active sources, selections, and mappings.
+
+#### Matrix messages
+
+The matrix accepts the following control messages:
+
+| Message | Behavior |
+| --- | --- |
+| `mode hands` | Selects the Hands mode. Replace `hands` with `clusters`, `wearable`, `gamepad`, or `mouse` to select another mode. |
+| `clear` | Resets LEDs, gates, selections, and mappings for the current mode. Colors are preserved. |
+| `clearall` | Resets states and mappings for every mode. Colors are preserved. |
+| `clearmappings` | Clears only the mappings for the current mode. Active LEDs, gates, and selections are preserved. |
+| `rightborderactive $1` | Sets the active-border value for the right-hand side. |
+| `leftborderactive $1` | Sets the active-border value for the left-hand side. |
+| `rightborderinactive $1` | Sets the inactive-border value for the right-hand side. |
+| `leftborderinactive $1` | Sets the inactive-border value for the left-hand side. |
+| `rightbgactive $1` | Sets the active-background value for the right-hand side. |
+| `leftbgactive $1` | Sets the active-background value for the left-hand side. |
+| `rightbginactive $1` | Sets the inactive-background value for the right-hand side. |
+| `leftbginactive $1` | Sets the inactive-background value for the left-hand side. |
+| `rightcolor $1` | Sets the right-hand display color value. |
+| `leftcolor $1` | Sets the left-hand display color value. |
+
+In Max message boxes, `$1` is replaced by the value sent to the message.
+
+See [Gesture Routing Matrix](docs/routing-matrix.md) for messages, outputs, colors, and state behavior.
+
+### Custom Parameter Dials
+
+Twelve reusable JSUI dials process normalized controller data through:
+
+![GestureCap OSC custom parameter dials](media/custom-dials.png)
+
+```text
+Raw Input
+→ Near / Far
+→ Invert
+→ Exponent
+→ Playable Range
+→ Unit Display
+→ Triggers
 ```
 
-**Run these tests:**
-- **Hover test:** Taps should only trigger when hand is very close to foil (< few mm)
-- **Rapid taps test:** Tap rapidly - false positives should be rare (about 1 in 7 or better)
-- **Still hand test:** Rest hand sideways on surface - no taps should register when stationary
+See [Custom JSUI Dials](docs/custom-dials.md) for messages, outlets, and display behavior.
 
-*If tests fail, repeat calibration and adjust camera exposure in `flircam.py` or room lighting.*
+---
 
-### 10. Audio Software Setup (PureData)
+## Tracker-Only Download and Manual Integration
 
-- Open PureData and load `beep.pd`
-- Set frequency to 200 Hz
-- Go to Audio Settings: select AUX output device, set delay = 3 ms
-- Test by pressing button in PureData to confirm sound plays from speaker
+Use this section if you cloned a version of the repository without `dist/`, or if you want to embed the tracker in your own Max Project, standalone, or OSC application. Users of the complete ready-to-run package can skip this section.
 
-### 11. Data Collection
+### 1. Download the tracker-only asset
 
-**Start the measurement:**
-```bash
-prime-run python latency_mp.py  # or your GPU command
+Download the smaller tracker package from the [latest GitHub Release](https://github.com/mikaelmolliex/gesturecap-osc/releases/latest):
+
+```text
+gesturecap-tracker-macos-arm64.zip
 ```
 
-**In a separate terminal, start logging:**
-```bash
-python log_serial.py
+To use it with this repository:
+
+1. Unzip the archive.
+2. Create `dist/` at the repository root if it is not already present.
+3. Move the extracted `doublehand_mp/` folder into `dist/`.
+
+This installation step is mandatory. The standard Max launcher cannot start MediaPipe until the executable exists at:
+
+```text
+dist/doublehand_mp/doublehand_mp
 ```
 
-**Configuration:**
-- Script uses `config.json` with these keys:
-  - `device`: Experiment device name
-  - `baud_rate`: Serial connection rate (9600 or 115200)
-  - `method`: Audio detection method description
-  - `frequency`: Audio signal frequency (Hz)
-  - `threshold`: Detection threshold value
-  - `pd_delay`: PureData delay (milliseconds)
-  - `output_method`: Output method (AUX + speaker-mic, direct AUX, etc.)
+The current build is provided for macOS Apple Silicon (`arm64`). It is signed with an Apple Developer ID and notarized by Apple for distribution outside the Mac App Store.
 
-**Data Collection:**
-- Re-attach wire to pinky
-- Test with a few taps to confirm latencies are logging
-- Restart both scripts and begin experiment
-- Perform approximately 250 taps to obtain ~200 valid latency samples
+The optional checksum asset is:
 
-### 12. Data Processing
-
-```bash
-prime-run python join_tables.py --tablea path/to/TableA.csv \
-    --tableb path/to/TableB.csv --out path/to/final.csv --tol_ms 50
+```text
+gesturecap-tracker-macos-arm64.zip.sha256
 ```
 
-**Output:**
-- Two files saved: `TableA.csv`, `TableB.csv`
-- `join_tables.py` handles false positives/negatives automatically
-- Final CSV contains total latency and breakdown of internal latencies for each tap
+To verify the download, place the ZIP and checksum file together, then run:
 
-### 13. Optional – Pre-Tap Frame Capture
-
-In the `latency_mp.py` script, set `SAVE_FRAMES = True`
-
-
-- Saves `LAST_N_FRAMES` before tap detection (default to `7`)
-- Wait at least 500ms between taps (saving 7 frames require 500ms)
-
-### 14. Cleanup
-
-- Disconnect the FLIR camera
-- Disconnect the Teensy from USB
-- Reset GPU clocks to default settings:
 ```bash
-sudo nvidia-smi --reset-memory-clocks && sudo nvidia-smi --reset-gpu-clocks
+shasum -a 256 -c gesturecap-tracker-macos-arm64.zip.sha256
 ```
 
-## For Future Contributors:
+The expected result is:
 
-### Multiprocessing Integration
-The multiprocessing implementation from this GSoC project needs to be integrated into the original GestureCap repository: [m2b3/gesturecap](https://github.com/m2b3/gesturecap)
+```text
+gesturecap-tracker-macos-arm64.zip: OK
+```
 
-Future contributors should focus on merging this multiprocessing code into the main codebase and ensuring it maintains project integrity while improving performance.
+The checksum verification is recommended but is not required to run the tracker. The archive contains `doublehand_mp/`; it does not create the parent `dist/` directory for you.
 
-### Optimization: Multiple MediaPipe Workers
-Currently, the consumer process handles both MediaPipe frame processing and OSC signal production. This can be further optimized by separating these tasks:
+The final project structure for the standard ready-to-run repository must be:
 
-- **MediaPipe Worker Pool:** Create multiple MediaPipe processors that work in parallel to extract landmarks from frames as soon as they become available
-- **OSC Signal Process:** A separate process that takes landmarks from the worker pool, maps them to gestures, and sends OSC signals
+```text
+gesturecap-osc/
+├── dist/
+│   └── doublehand_mp/
+│       ├── doublehand_mp
+│       └── _internal/
+└── max/
+    ├── GestureCap_Tracker_Test.maxpat
+    ├── run_mediapipe_maxmsp.js
+    ├── mediapipe_handdraw.js
+    ├── gesture_mapper_ui_multimode_extended.js
+    └── custom.dial.v9.js
+```
 
-### Dockerization
-The project should be containerized using Docker to resolve dependency issues with the Spinnaker SDK. Consider using UV for faster Python package management.
-Key Requirements:
+The complete `_internal/` directory must remain beside the `doublehand_mp` executable. Do not move the executable by itself.
 
-- Proper GPU passthrough configuration to maintain low-latency performance
-- Hardware device access for camera and audio interfaces
-- USB device passthrough for Teensy/serial connections
+On first launch, macOS may display its normal confirmation and camera-permission dialogs. If Gatekeeper reports that it cannot verify the tracker, confirm that you downloaded the current Release asset and that the SHA-256 verification succeeds. Do not replace the release signature with an ad-hoc signature.
 
+### 2. Test with the included Max patch
 
-## About Me
+```text
+max/GestureCap_Tracker_Test.maxpat
+```
 
-Deepansh is an undergraduate Computer Science and Engineering Student from India. He has a strong passion for Robotics, Perception and HCI-systems.
-Additionally, he holds the position of core member in a Robotics Research and Development Society called A.T.O.M Robotics Lab at his college. 
-Deepansh enjoys learning new technologies, building cool things, and automating tasks.
+### 3. Enable the camera/video control
 
+Max launches the packaged tracker. The tracker opens its OpenCV preview and sends MediaPipe landmarks to the visualizer embedded in the Max patch.
 
+The initial launch can take approximately 20–30 seconds while the packaged runtime, MediaPipe, OpenCV, and supporting resources load.
 
+### Tracker paths by integration mode
+
+The tracker location depends on how GestureCap OSC is being used. The three launcher scripts intentionally use different paths for the standard repository, a Max Project, and a standalone application.
+
+#### Ready-to-run repository
+
+No files need to be moved when using the complete release.
+
+[`max/run_mediapipe_maxmsp.js`](max/run_mediapipe_maxmsp.js) resolves the tracker relative to the launcher script:
+
+```javascript
+const TRACKER_PATH = path.join(
+    __dirname,
+    "..",
+    "dist",
+    "doublehand_mp",
+    "doublehand_mp"
+);
+```
+
+The executable must exist at:
+
+```text
+dist/doublehand_mp/doublehand_mp
+```
+
+The expected structure is:
+
+```text
+gesturecap-osc/
+├── dist/
+│   └── doublehand_mp/
+│       ├── doublehand_mp
+│       └── _internal/
+└── max/
+    └── run_mediapipe_maxmsp.js
+```
+
+#### Max Project integration
+
+[`max/run_mediapipe_maxmsp_project.js`](max/run_mediapipe_maxmsp_project.js) is intended for a tracker embedded in a Max Project.
+
+For this integration, copy the complete `doublehand_mp/` folder from `dist/` into the Max Project’s `tracker/` directory:
+
+```text
+tracker/
+└── doublehand_mp/
+    ├── doublehand_mp
+    └── _internal/
+```
+
+The launcher resolves this location relative to its position inside the Max Project:
+
+```javascript
+const TRACKER_PATH = path.resolve(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "tracker",
+    "doublehand_mp",
+    "doublehand_mp"
+);
+```
+
+The relative path assumes the launcher remains in the directory structure expected by the Max Project. If the launcher is moved to another location, update the `TRACKER_PATH` block accordingly.
+
+#### Standalone application integration
+
+[`max/run_mediapipe_standalone.js`](max/run_mediapipe_standalone.js) is intended for a tracker embedded inside a standalone Max application.
+
+The tracker is placed inside the application bundle:
+
+```text
+YourApp.app/
+└── Contents/
+    └── Resources/
+        └── tracker/
+            └── doublehand_mp/
+                ├── doublehand_mp
+                └── _internal/
+```
+
+The supplied standalone launcher currently uses this example path:
+
+```text
+/Applications/YourApp.app/Contents/Resources/tracker/doublehand_mp/doublehand_mp
+```
+
+This path is specific to `YourApp.app`. When integrating the tracker into another standalone application, update the application name or complete bundle path in:
+
+```text
+max/run_mediapipe_standalone.js
+```
+
+For example:
+
+```javascript
+const TRACKER_PATH = path.join(
+    "/Applications",
+    "YourApp.app",
+    "Contents",
+    "Resources",
+    "tracker",
+    "doublehand_mp",
+    "doublehand_mp"
+);
+```
+
+In every integration mode, keep the complete `_internal/` directory beside the `doublehand_mp` executable.
+
+Embedding the signed tracker does not automatically sign or notarize the surrounding standalone application. The complete `.app` and its final distribution archive must be signed and notarized separately before public distribution.
+
+See [Max/MSP Integration](docs/max-integration.md) for the regular patch, Max Project, and standalone launchers.
+
+---
+
+## Packaged Tracker and `dist/`
+
+For the `v0.1.0` ready-to-run milestone, `dist/doublehand_mp/` is included in the release commit so the complete project works immediately after extraction. Other generated `dist/` outputs and local backups remain ignored.
+
+The same signed and notarized tracker is also distributed separately as `gesturecap-tracker-macos-arm64.zip` for users who do not need the complete project.
+
+Release workflow:
+
+1. Build `doublehand_mp/` from the committed PyInstaller specification.
+2. Sign the release build with a Developer ID Application identity and hardened runtime.
+3. Verify the executable and test the complete generated directory.
+4. Compress the signed `doublehand_mp/` directory as `gesturecap-tracker-macos-arm64.zip`.
+5. Submit that exact archive to Apple's notary service.
+6. Generate and verify `gesturecap-tracker-macos-arm64.zip.sha256`.
+7. Attach the accepted archive and checksum to a GitHub Release.
+8. Keep standalone ZIP and checksum assets outside Git history.
+
+The unpacked tracker is approximately 217 MB. The release archive is smaller because it is compressed.
+
+Future development versions may stop tracking `dist/` again. The `v0.1.0` tag will continue to preserve this ready-to-run milestone.
+
+The current packaged tracker is built for macOS Apple Silicon (`arm64`). Intel macOS and Windows require separate builds and release assets.
+
+Developers who want to run from Python source can use the repository's Python environment. See [Build Tracker on macOS](docs/build-tracker.md) for the PyInstaller workflow.
+
+---
+
+## Main Files
+
+```text
+max/GestureCap_Tracker_Test.maxpat       Main Max/MSP demonstration patch
+dist/doublehand_mp/                      Packaged local MediaPipe tracker
+max/mediapipe_handdraw.js                Landmark visualizer
+max/gesture_mapper_ui_multimode_extended.js
+                                         Gesture routing matrix
+max/custom.dial.v9.js                    Custom parameter dial
+max/run_mediapipe_maxmsp.js              Regular Max patch launcher
+max/run_mediapipe_maxmsp_project.js      Max Project launcher
+max/run_mediapipe_standalone.js          Standalone application launcher
+```
+
+---
+
+## macOS Standalone Deployment
+
+For a standalone application, the tracker can be embedded at:
+
+```text
+YourApp.app
+└── Contents
+    └── Resources
+        └── tracker
+            └── doublehand_mp/
+                ├── doublehand_mp
+                └── _internal/
+```
+
+Camera access may require `NSCameraUsageDescription`, a camera entitlement, application signing, and a TCC permission reset during development. Embedding the already signed tracker does not sign or notarize the surrounding Max standalone application: the complete `.app` and its final distribution archive must follow their own Developer ID signing and notarization workflow.
+
+See [macOS Camera Permissions](docs/macos-camera-permissions.md) for the complete workflow.
+
+---
+
+## Project Origin
+
+GestureCap OSC is based on the original GestureCap project developed during Google Summer of Code 2025 under the INCF organization.
+
+This repository includes work developed as part of my contribution to Google Summer of Code 2026. It extends the original pipeline with local OSC integration, Max/MSP routing, packaged tracker deployment, embedded visualization, and custom parameter interfaces.
+
+---
+
+## Visual Assets
+
+Interface icons are sourced from [Iconoir](https://iconoir.com/).
+
+---
+
+## License
+
+See the project license for details.
